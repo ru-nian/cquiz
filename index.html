@@ -386,13 +386,23 @@ body{padding-bottom:78px}
   function cloudStatText() {
     const c = cloudCfg();
     if (!cloudReady()) return '未配置，数据只在本机。';
-    return c.lastSync ? '上次同步：' + new Date(c.lastSync).toLocaleString() : '已配置，尚未同步。';
+    const parts = [];
+    if (c.remote != null) parts.push('云端 ' + c.remote + ' 条');
+    parts.push('本机 ' + S.attempts.length + ' 条');
+    if (c.lastSync) parts.push('上次同步 ' + new Date(c.lastSync).toLocaleTimeString());
+    return parts.join(' · ');
   }
   function setStatus(txt) {
     const el = document.getElementById('cloudstat');
     if (el) el.textContent = txt;
   }
-  function apiBase() { return (cloudCfg().url || '').replace(/\/+$/, ''); }
+  function normUrl(u) {
+    // 只保留协议+域名，后面多填的 /rest/v1/ 之类自动切掉
+    u = (u || '').trim();
+    const m = u.match(/^(https?:\/\/[^\/\s]+)/i);
+    return m ? m[1] : u.replace(/\/+$/, '');
+  }
+  function apiBase() { return normUrl(cloudCfg().url); }
   function hdr(c) {
     return { 'apikey': c.key, 'Authorization': 'Bearer ' + c.key, 'Content-Type': 'application/json' };
   }
@@ -401,7 +411,11 @@ body{padding-bottom:78px}
     const c = cloudCfg();
     const res = await fetch(apiBase() + '/rest/v1/attempts?select=id,qid,answer,grade,ts&limit=20000',
       { headers: hdr(c) });
-    if (!res.ok) throw new Error('拉取失败 HTTP ' + res.status);
+    if (!res.ok) {
+      if (res.status === 404) throw new Error('404：URL 填错，或表 attempts 还没建（见配置说明第 2 步）');
+      if (res.status === 401 || res.status === 403) throw new Error('key 不对或权限不足（要用 anon / publishable key）');
+      throw new Error('拉取失败 HTTP ' + res.status);
+    }
     let rows;
     try {
       rows = await res.json();
@@ -416,7 +430,7 @@ body{padding-bottom:78px}
       seen.add(r.id); add++;
     });
     if (add) save();
-    return add;
+    return { add: add, remote: rows.length };
   }
 
   async function cloudPush(list) {
@@ -434,17 +448,23 @@ body{padding-bottom:78px}
     }
   }
 
+  let syncing = false;
   async function syncAll(quiet) {
     if (!cloudReady()) { if (!quiet) alert('先填 URL 和 key 并保存'); return; }
+    if (syncing) return;
+    syncing = true;
     try {
       if (!quiet) setStatus('同步中…');
-      const added = await cloudPull();
+      const r = await cloudPull();
       await cloudPush(S.attempts);
-      saveCfg(Object.assign(cloudCfg(), { lastSync: Date.now() }));
-      setStatus('同步完成：从云端取回 ' + added + ' 条，本机共 ' + S.attempts.length + ' 条');
-      if (!quiet) route();
+      saveCfg(Object.assign(cloudCfg(), { lastSync: Date.now(), remote: r.remote }));
+      setStatus('同步完成：云端 ' + r.remote + ' 条 · 本机 ' + S.attempts.length + ' 条' +
+        (r.add ? '（新增 ' + r.add + ' 条）' : '（无新增）'));
+      if (r.add > 0) route();          // 真有新数据才重绘，避免把状态刷掉
     } catch (e) {
       setStatus('同步失败：' + e.message);
+    } finally {
+      syncing = false;
     }
   }
 
@@ -591,7 +611,7 @@ body{padding-bottom:78px}
     if (name === 'quiz') mountQuiz();
     if (name === 'more') {
       $('#csave').addEventListener('click', async () => {
-        const url = ($('#curl').value || '').trim();
+        const url = normUrl($('#curl').value);
         const key = ($('#ckey').value || '').trim();
         if (!url || !key) { alert('两项都要填'); return; }
         saveCfg({ url: url, key: key, lastSync: 0 });
@@ -609,6 +629,10 @@ body{padding-bottom:78px}
       });
     }
     window.scrollTo(0, 0);
+    // 切到任何页面都顺手对一次账（20 秒内不重复）
+    if (cloudReady() && !syncing && (Date.now() - (cloudCfg().lastSync || 0)) > 20000) {
+      syncAll(true);
+    }
   }
 
   function boot() {
