@@ -321,17 +321,102 @@ label.f{display:block;font-size:13px;color:var(--dim);margin:12px 0 5px}
   }
 
   function viewMore() {
+    const c = cloudCfg();
     return '<div class="card"><h1>设置</h1>' +
-      '<p class="muted">题库 ' + BANK.length + ' 题 · 记录 ' + S.attempts.length + ' 条 · 数据只存在本机</p>' +
-      '<div class="label">同步到另一台设备</div>' +
-      '<p class="muted">导出成 json，发到另一台设备后用「导入」合并：作答按 id 去重，不会覆盖已有记录。</p>' +
-      '<div class="row" style="margin-top:10px">' +
-      '<button class="btn primary" id="exp">导出数据</button>' +
-      '<button class="btn" id="imp">导入数据</button></div>' +
+      '<p class="muted">题库 ' + BANK.length + ' 题 · 本机记录 ' + S.attempts.length + ' 条</p>' +
+
+      '<div class="label">云同步（Supabase）</div>' +
+      '<p class="muted">填一次，两台设备填同样的两个值，之后作答和错题自动同步。</p>' +
+      '<label class="f">项目 URL</label>' +
+      '<input type="text" id="curl" placeholder="https://xxxx.supabase.co" value="' + esc(c.url || '') + '">' +
+      '<label class="f">anon public key</label>' +
+      '<input type="text" id="ckey" placeholder="eyJhbGciOi..." value="' + esc(c.key || '') + '">' +
+      '<div class="row" style="margin-top:12px">' +
+      '<button class="btn primary" id="csave">保存并测试</button>' +
+      '<button class="btn" id="csync">立即同步</button></div>' +
+      '<p class="muted" id="cloudstat" style="margin-top:10px">' + cloudStatText() + '</p>' +
+
+      '<div class="label">手动备份（云同步之外的第二保险）</div>' +
+      '<div class="row">' +
+      '<button class="btn" id="exp">导出 json</button>' +
+      '<button class="btn" id="imp">导入 json</button></div>' +
       '<input type="file" id="file" accept=".json,application/json" style="display:none">' +
+
       '<div class="label">危险操作</div>' +
       '<button class="btn bad block" id="clr">清空本机记录</button>' +
       '</div>';
+  }
+
+  /* ---------------- 云同步 ---------------- */
+  const CK = 'cquiz.cloud.v1';
+  function cloudCfg() {
+    try { return JSON.parse(localStorage.getItem(CK)) || {}; } catch (e) { return {}; }
+  }
+  function saveCfg(o) { localStorage.setItem(CK, JSON.stringify(o)); }
+  function cloudReady() { const c = cloudCfg(); return !!(c.url && c.key); }
+  function cloudStatText() {
+    const c = cloudCfg();
+    if (!cloudReady()) return '未配置，数据只在本机。';
+    return c.lastSync ? '上次同步：' + new Date(c.lastSync).toLocaleString() : '已配置，尚未同步。';
+  }
+  function setStatus(txt) {
+    const el = document.getElementById('cloudstat');
+    if (el) el.textContent = txt;
+  }
+  function apiBase() { return (cloudCfg().url || '').replace(/\/+$/, ''); }
+  function hdr(c) {
+    return { 'apikey': c.key, 'Authorization': 'Bearer ' + c.key, 'Content-Type': 'application/json' };
+  }
+
+  async function cloudPull() {
+    const c = cloudCfg();
+    const res = await fetch(apiBase() + '/rest/v1/attempts?select=id,qid,answer,grade,ts&limit=20000',
+      { headers: hdr(c) });
+    if (!res.ok) throw new Error('拉取失败 HTTP ' + res.status);
+    let rows;
+    try {
+      rows = await res.json();
+    } catch (e) {
+      throw new Error('返回的不是 JSON：URL 要填 https://xxx.supabase.co 这种项目地址');
+    }
+    const seen = new Set(S.attempts.map(a => a.id));
+    let add = 0;
+    rows.forEach(r => {
+      if (!r || !r.id || seen.has(r.id)) return;
+      S.attempts.push({ id: r.id, qid: r.qid, answer: r.answer, grade: r.grade, ts: r.ts });
+      seen.add(r.id); add++;
+    });
+    if (add) save();
+    return add;
+  }
+
+  async function cloudPush(list) {
+    if (!list.length) return;
+    const c = cloudCfg();
+    const body = list.map(a => ({ id: a.id, qid: a.qid, answer: a.answer, grade: a.grade, ts: a.ts }));
+    const res = await fetch(apiBase() + '/rest/v1/attempts', {
+      method: 'POST',
+      headers: Object.assign(hdr(c), { 'Prefer': 'resolution=merge-duplicates,return=minimal' }),
+      body: JSON.stringify(body)
+    });
+    if (!res.ok) {
+      const t = await res.text();
+      throw new Error('上传失败 HTTP ' + res.status + ' ' + t.slice(0, 90));
+    }
+  }
+
+  async function syncAll(quiet) {
+    if (!cloudReady()) { if (!quiet) alert('先填 URL 和 key 并保存'); return; }
+    try {
+      if (!quiet) setStatus('同步中…');
+      const added = await cloudPull();
+      await cloudPush(S.attempts);
+      saveCfg(Object.assign(cloudCfg(), { lastSync: Date.now() }));
+      setStatus('同步完成：从云端取回 ' + added + ' 条，本机共 ' + S.attempts.length + ' 条');
+      if (!quiet) route();
+    } catch (e) {
+      setStatus('同步失败：' + e.message);
+    }
   }
 
   /* ---------------- 答题 ---------------- */
@@ -406,8 +491,10 @@ label.f{display:block;font-size:13px;color:var(--dim);margin:12px 0 5px}
     document.querySelectorAll('#gbox [data-g]').forEach(b => {
       b.addEventListener('click', () => {
         const grade = parseInt(b.dataset.g, 10);
-        S.attempts.push({ id: uid(), qid: cur.id, answer: ta.value, grade, ts: Date.now() });
+        const rec = { id: uid(), qid: cur.id, answer: ta.value, grade: grade, ts: Date.now() };
+        S.attempts.push(rec);
         save();
+        if (cloudReady()) cloudPush([rec]).catch(() => { });   // 后台补传，失败不影响本机
         localStorage.removeItem(key);
         session.pos++;
         go('quiz');
@@ -474,6 +561,15 @@ label.f{display:block;font-size:13px;color:var(--dim);margin:12px 0 5px}
     }
     if (name === 'quiz') mountQuiz();
     if (name === 'more') {
+      $('#csave').addEventListener('click', async () => {
+        const url = ($('#curl').value || '').trim();
+        const key = ($('#ckey').value || '').trim();
+        if (!url || !key) { alert('两项都要填'); return; }
+        saveCfg({ url: url, key: key, lastSync: 0 });
+        setStatus('测试连接中…');
+        await syncAll(false);
+      });
+      $('#csync').addEventListener('click', () => syncAll(false));
       $('#exp').addEventListener('click', exportData);
       $('#imp').addEventListener('click', () => $('#file').click());
       $('#file').addEventListener('change', e => { if (e.target.files[0]) importData(e.target.files[0]); });
@@ -498,6 +594,8 @@ label.f{display:block;font-size:13px;color:var(--dim);margin:12px 0 5px}
     if ('serviceWorker' in navigator && location.protocol !== 'file:') {
       navigator.serviceWorker.register('./sw.js').catch(() => { });
     }
+    // 配了云同步就在启动时悄悄对一次账
+    if (cloudReady()) setTimeout(() => syncAll(true), 600);
   }
 
   document.addEventListener('DOMContentLoaded', boot);
