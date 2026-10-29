@@ -84,16 +84,25 @@ img{max-width:100%}
 .track i{display:block;height:100%;width:0;background:var(--accent);transition:width .25s}
 
 .stem{font-size:16.5px;line-height:1.75}
-.stem pre,.ref pre{background:#0f172a;color:#e6edf7;border-radius:10px;padding:12px 13px;overflow:auto;
-  white-space:pre-wrap;word-break:break-word;
-  font:13.5px/1.6 ui-monospace,SFMono-Regular,Consolas,"Courier New",monospace;margin:10px 0}
-.stem code,.ref code{background:#f0f1f3;padding:1px 5px;border-radius:5px;
+/* 代码块：stem/ref/ansbox 三处都要有，否则历史详情里的代码会变成裸文本 */
+.stem pre,.ref pre,.ansbox pre{background:#0f172a;color:#e6edf7;border-radius:10px;padding:12px 13px;
+  overflow-x:auto;max-width:100%;white-space:pre;word-break:normal;
+  font:13.5px/1.6 ui-monospace,SFMono-Regular,Consolas,"Courier New",monospace;margin:10px 0;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.06)}
+.stem code,.ref code,.ansbox code{background:#f0f1f3;padding:1px 5px;border-radius:5px;
   font:13.5px/ui-monospace,SFMono-Regular,Consolas,monospace}
-.stem pre code,.ref pre code{background:none;padding:0;font-size:inherit}
-.stem table,.ref table{border-collapse:collapse;width:100%;margin:10px 0;font-size:14px;display:block;overflow-x:auto}
-.stem th,.stem td,.ref th,.ref td{border:1px solid var(--line);padding:6px 9px;text-align:left}
-.stem blockquote,.ref blockquote{margin:10px 0;padding:8px 12px;border-left:3px solid #cbd5e1;
+.stem pre code,.ref pre code,.ansbox pre code{background:none;padding:0;font-size:inherit;
+  color:inherit;white-space:pre}
+.stem table,.ref table,.ansbox table{border-collapse:collapse;width:100%;margin:10px 0;font-size:14px;
+  display:block;overflow-x:auto}
+.stem th,.stem td,.ref th,.ref td,.ansbox th,.ansbox td{border:1px solid var(--line);padding:6px 9px;text-align:left}
+.stem blockquote,.ref blockquote,.ansbox blockquote{margin:10px 0;padding:8px 12px;border-left:3px solid #cbd5e1;
   background:#f8fafc;color:#475569;border-radius:0 8px 8px 0}
+/* 正文密度：默认段间距太松，手机上显示的行数太少 */
+.stem p,.ref p,.ansbox p{margin:8px 0}
+.stem ul,.stem ol,.ref ul,.ref ol,.ansbox ul,.ansbox ol{margin:8px 0;padding-left:22px}
+.stem li,.ref li,.ansbox li{margin:3px 0}
+.stem h3,.ref h3,.ansbox h3{font-size:15.5px;margin:14px 0 6px}
 
 textarea{width:100%;min-height:130px;border:1px solid var(--line);border-radius:12px;padding:12px;
   font:15px/1.7 inherit;resize:vertical;background:#fff;font-family:inherit}
@@ -219,15 +228,15 @@ body{padding-bottom:78px}
 .phead{font-size:12.5px}
 /* 判分栏也别粘着，避免和底部 tab 打架 */
 .grade{position:static!important;background:transparent;padding:10px 0 4px;margin-top:10px}
-.stem pre,.ref pre{font-size:12.5px;line-height:1.55;white-space:pre;overflow-x:auto;
-  -webkit-overflow-scrolling:touch;tab-size:4}
+.stem pre,.ref pre,.ansbox pre{font-size:12.5px;line-height:1.55;white-space:pre;
+  overflow-x:auto;-webkit-overflow-scrolling:touch;tab-size:4;max-width:100%}
 .tabbar{transform:translateZ(0);backface-visibility:hidden;will-change:transform}
 
 @media(max-width:720px){
   .card{padding:14px 14px 12px}
   .card h1{font-size:17px}
   .stem{font-size:15px;line-height:1.66}
-  .stem pre,.ref pre{font-size:11.5px;line-height:1.5;padding:10px 11px;border-radius:9px}
+  .stem pre,.ref pre,.ansbox pre{font-size:11.5px;line-height:1.5;padding:10px 11px;border-radius:9px}
   .stem table,.ref table{font-size:13px}
   .stem h3,.ref h3{font-size:15px}
   .note-panel textarea{font-size:14px}
