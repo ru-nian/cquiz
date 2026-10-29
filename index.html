@@ -194,23 +194,24 @@ body{padding-bottom:78px}
 .leaf{display:flex;align-items:center;gap:8px;padding:10px 2px 10px 18px;
   border-bottom:1px dashed #f1f2f4;font-size:14.5px;color:var(--text);cursor:pointer}
 .leaf:last-child{border-bottom:0}
-.leaf input{margin:0}
-.dot{display:inline-block;flex:0 0 auto;width:8px;height:8px;border-radius:50%;margin-left:auto}
-.dot.bad{background:#ef4444;box-shadow:0 0 0 3px rgba(239,68,68,.10)}
-.dot.ok{background:#3b82f6;box-shadow:0 0 0 3px rgba(59,130,246,.12)}
+.leaf input{margin:0;flex:0 0 auto}
+.leaf-t{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.num{flex:0 0 26px;text-align:right;color:var(--dim);font-size:12.5px;
+  font-variant-numeric:tabular-nums}
+.mk{flex:0 0 14px;display:flex;align-items:center;justify-content:center}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%}
+.dot.red{background:#ef4444;box-shadow:0 0 0 3px rgba(239,68,68,.12)}
+.dot.yellow{background:#f59e0b;box-shadow:0 0 0 3px rgba(245,158,11,.14)}
+.dot.blue{background:#3b82f6;box-shadow:0 0 0 3px rgba(59,130,246,.14)}
 
-/* ---------- 历史按天分组 ---------- */
-.day{border-bottom:1px solid #eceef1}
-.day-head{display:flex;align-items:center;gap:8px;width:100%;padding:12px 2px;border:0;
-  background:transparent;font:15px/1.5 inherit;color:var(--text);cursor:pointer;text-align:left}
-.day-head .chev{font-size:11px;color:var(--dim);transition:transform .22s ease;display:inline-block}
-.day.open .day-head .chev{transform:rotate(90deg)}
-.day-body{display:none;padding:0 0 8px}
-.day.open .day-body{display:block}
-.rec{padding:9px 2px;border-bottom:1px dashed #f2f3f5;font-size:14px}
+/* ---------- 历史：按题目归并 ---------- */
+.rec{padding:12px 2px;border-bottom:1px dashed #eef0f3}
 .rec:last-child{border-bottom:0}
 .rec .sum{display:flex;align-items:center;gap:8px}
-.rec .txt{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rec .txt{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rec .sub{font-size:11.5px;color:var(--dim);margin:4px 0 0 16px}
+.tl-item{border-left:2px solid #e8eaee;padding:2px 0 2px 10px;margin:10px 0}
+.tl-h{display:flex;align-items:center;gap:8px;margin-bottom:5px;font-size:12px}
 .pill{font-size:11px;padding:1px 7px;border-radius:999px;flex:0 0 auto}
 .pill.ok{background:#ecfdf5;color:#16a34a}
 .pill.mid{background:#fffbeb;color:#d97706}
@@ -399,16 +400,26 @@ body{padding-bottom:78px}
     return (q.chapter || q.topic || '其他').trim();
   }
 
-  // 没练过 → 不标；练过且该节全达标 → 掌握；练过没达标 → 未掌握
+  // 单题状态：'' 没练过 / red 最近答错 / yellow 错过但刚对一次 / blue 答对（首次就对或连对两次）
+  function qLevel(qid) {
+    const list = attemptsOf(qid);
+    if (!list.length) return '';
+    if (list[list.length - 1].grade < 2) return 'red';
+    let streak = 0;
+    for (let i = list.length - 1; i >= 0; i--) {
+      if (list[i].grade === 2) streak++; else break;
+    }
+    if (list.length === 1) return 'blue';        // 第一次就答对，直接蓝
+    return streak >= 2 ? 'blue' : 'yellow';      // 错过一次后对一次=黄，对两次=蓝
+  }
+
+  // 小节状态：全部蓝才算蓝；有红就是红；其余（练过但没红没全蓝）算黄
   function topicStatus(topic) {
-    const qs = BANK.filter(x => x.topic === topic);
-    let tried = 0, ok = 0;
-    qs.forEach(q => {
-      const st = qState(q.id);
-      if (st.seen) { tried++; if (st.streak >= 2) ok++; }
-    });
-    if (!tried) return '';
-    return ok === qs.length ? 'ok' : 'bad';
+    const lv = BANK.filter(x => x.topic === topic).map(q => qLevel(q.id));
+    if (lv.every(x => !x)) return '';
+    if (lv.every(x => x === 'blue')) return 'blue';
+    if (lv.some(x => x === 'red')) return 'red';
+    return 'yellow';
   }
 
   function viewPick() {
@@ -442,12 +453,14 @@ body{padding-bottom:78px}
         '<div class="acc-body">' +
         leaves.map(t => {
           const st = topicStatus(t);
-          const dot = st === 'ok' ? '<span class="dot ok" title="已掌握"></span>'
-            : st === 'bad' ? '<span class="dot bad" title="写过，还没掌握"></span>' : '';
+          const dot = st === 'blue' ? '<span class="dot blue" title="已掌握"></span>'
+            : st === 'yellow' ? '<span class="dot yellow" title="错过，已对一次"></span>'
+              : st === 'red' ? '<span class="dot red" title="最近答错"></span>' : '';
           const n = BANK.filter(q => q.topic === t).length;
           return '<label class="leaf"><input type="checkbox" name="topic" value="' + esc(t) + '">' +
-            '<span>' + esc(t) + '</span>' +
-            '<span class="muted" style="margin-left:auto">' + n + '</span>' + dot + '</label>';
+            '<span class="leaf-t">' + esc(t) + '</span>' +
+            '<span class="num">' + n + '</span>' +
+            '<span class="mk">' + dot + '</span></label>';
         }).join('') +
         '</div></div>';
     });
@@ -479,16 +492,7 @@ body{padding-bottom:78px}
       }).join('') + '</div>' : '<div class="card"><p class="muted">池子是空的。</p></div>');
   }
 
-  const openDays = new Set();
-  function dayKey(ts) {
-    const d = new Date(ts);
-    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' +
-      String(d.getDate()).padStart(2, '0');
-  }
-  function dayLabel(k) {
-    const p = k.split('-');
-    return Number(p[1]) + ' 月 ' + Number(p[2]) + ' 日';
-  }
+  const openQ = new Set();
 
   function viewHist() {
     const nCount = allNotesFlat().length;
@@ -498,40 +502,48 @@ body{padding-bottom:78px}
       '<a class="btn" href="#pick?mode=wrong">错题重练</a></div></div>';
     if (!S.attempts.length) return head + '<div class="card"><p class="muted">还没有作答记录。</p></div>';
 
+    // 按题目归并，错得多的排前面，全对的排后面
     const groups = {};
-    S.attempts.slice().sort((a, b) => b.ts - a.ts).forEach(a => {
-      const k = dayKey(a.ts);
-      (groups[k] = groups[k] || []).push(a);
-    });
-    const days = Object.keys(groups).sort().reverse();
-    if (!openDays.size) openDays.add(days[0]);
+    S.attempts.forEach(a => { (groups[a.qid] = groups[a.qid] || []).push(a); });
+    const rows = Object.keys(groups).map(qid => {
+      const list = groups[qid].slice().sort((x, y) => x.ts - y.ts);
+      const q = qById(qid);
+      const wrong = list.filter(a => a.grade < 2).length;
+      return { qid: qid, q: q, list: list, wrong: wrong, last: list[list.length - 1] };
+    }).filter(r => r.q);
 
-    return head + '<div class="card">' + days.map(k => {
-      const list = groups[k];
-      const right = list.filter(a => a.grade === 2).length;
-      const acc = Math.round(right * 100 / list.length);
-      return '<div class="day' + (openDays.has(k) ? ' open' : '') + '" data-day="' + k + '">' +
-        '<button class="day-head" type="button"><span class="chev">▶</span>' +
-        '<span>' + dayLabel(k) + '</span>' +
-        '<span class="muted">' + list.length + ' 题</span>' +
-        '<span class="muted" style="margin-left:auto">正确率 ' + acc + '%</span></button>' +
-        '<div class="day-body">' + list.map(a => {
-          const q = qById(a.qid); if (!q) return '';
-          const cls = a.grade === 2 ? 'ok' : (a.grade === 1 ? 'mid' : 'no');
-          const ns = notesOf(a.qid);
-          return '<div class="rec">' +
-            '<div class="sum"><span class="txt">' + esc(q.plain) + '</span>' +
-            '<span class="pill ' + cls + '">' + GRADE[a.grade] + '</span></div>' +
-            '<details><summary>回看</summary>' +
-            '<div class="muted" style="margin:6px 0">' + new Date(a.ts).toLocaleTimeString() +
-            ' · ' + QT[q.qtype] + ' · ' + esc(q.topic) + '</div>' +
-            '<div class="ansbox">' + q.stem_html + '</div>' +
+    rows.sort((a, b) => (b.wrong - a.wrong) || (b.last.ts - a.last.ts));
+
+    return head + '<div class="card">' + rows.map(r => {
+      const q = r.q;
+      const ns = notesOf(r.qid);
+      const lv = qLevel(r.qid);
+      const dot = lv === 'blue' ? '<span class="dot blue"></span>'
+        : lv === 'yellow' ? '<span class="dot yellow"></span>'
+          : lv === 'red' ? '<span class="dot red"></span>' : '';
+      const pillCls = r.last.grade === 2 ? 'ok' : (r.last.grade === 1 ? 'mid' : 'no');
+
+      return '<div class="rec">' +
+        '<div class="sum">' + dot +
+        '<span class="txt">' + esc(q.plain) + '</span>' +
+        '<span class="pill ' + pillCls + '">' + GRADE[r.last.grade] + '</span></div>' +
+        '<div class="sub">共 ' + r.list.length + ' 次 · 错 ' + r.wrong + ' 次 · ' +
+        new Date(r.last.ts).toLocaleDateString() + ' 最近</div>' +
+        '<details><summary>回看这 ' + r.list.length + ' 次作答</summary>' +
+        r.list.map((a, i) => {
+          const c = a.grade === 2 ? 'ok' : (a.grade === 1 ? 'mid' : 'no');
+          return '<div class="tl-item">' +
+            '<div class="tl-h"><span class="pill ' + c + '">' + GRADE[a.grade] + '</span>' +
+            '<span class="muted">' + new Date(a.ts).toLocaleString() + '</span>' +
+            '<span class="muted">#' + (i + 1) + '</span></div>' +
             '<div class="myans">' + (a.answer ? esc(a.answer) : '（没写文字，直接自评）') + '</div>' +
-            (ns.length ? '<div class="label">我的疑问</div>' +
-              ns.map(n => '<div class="note-item">' + esc(n.text) + '</div>').join('') : '') +
-            '<div class="label">参考答案</div><div class="ansbox">' + q.answer_html + '</div>' +
-            '</details></div>';
-        }).join('') + '</div></div>';
+            '</div>';
+        }).join('') +
+        '<div class="label">题干</div><div class="ansbox">' + q.stem_html + '</div>' +
+        (ns.length ? '<div class="label">我的疑问</div>' +
+          ns.map(n => '<div class="note-item">' + esc(n.text) + '</div>').join('') : '') +
+        '<div class="label">参考答案</div><div class="ansbox">' + q.answer_html + '</div>' +
+        '</details></div>';
     }).join('') + '</div>';
   }
 
@@ -705,6 +717,8 @@ body{padding-bottom:78px}
     let list = BANK.slice();
     if (types.length) list = list.filter(q => types.includes(q.qtype));
     if (topics.length) list = list.filter(q => topics.includes(q.topic));
+    // 已经答对的（蓝点）暂时不再出，避免重复消耗时间；错题池除外
+    if (mode !== 'wrong') list = list.filter(q => qLevel(q.id) !== 'blue');
     if (mode === 'wrong') list = list.filter(q => { const st = qState(q.id); return st.last && st.last.grade < 2; });
     if (mode === 'review') {
       list.sort((a, b) => {
