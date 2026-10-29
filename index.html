@@ -172,19 +172,66 @@ body{padding-bottom:78px}
 }
 
 /* ---------- 折叠目录（练习范围） ---------- */
-.acc{border:1px solid var(--line);border-radius:12px;background:#fff;margin-bottom:8px;overflow:hidden}
-.acc-head{display:flex;align-items:center;gap:8px;width:100%;padding:12px 14px;border:0;background:#fff;
+.acc{border:0;background:transparent;margin:0}
+.acc-head{display:flex;align-items:center;gap:8px;width:100%;padding:11px 2px;
+  border:0;border-bottom:1px solid #eceef1;background:transparent;
   font:15px/1.5 inherit;font-weight:600;color:var(--text);cursor:pointer;text-align:left}
-.acc-head .chev{display:inline-block;color:var(--dim);transition:transform .22s ease;font-size:12px}
+.acc-head .chev{display:inline-block;color:var(--dim);transition:transform .22s ease;font-size:11px}
 .acc.open .acc-head .chev{transform:rotate(90deg)}
 .acc-body{max-height:0;overflow:hidden;transition:max-height .26s ease}
-.acc.open .acc-body{max-height:1400px}
-.leaf{display:flex;align-items:center;gap:8px;padding:10px 14px 10px 34px;border-top:1px solid #f0f1f3;
-  font-size:14.5px;color:var(--text);cursor:pointer}
+.acc.open .acc-body{max-height:1600px}
+.leaf{display:flex;align-items:center;gap:8px;padding:10px 2px 10px 18px;
+  border-bottom:1px dashed #f1f2f4;font-size:14.5px;color:var(--text);cursor:pointer}
+.leaf:last-child{border-bottom:0}
 .leaf input{margin:0}
-.leaf .mk{margin-left:auto;font-size:12px;padding:1px 8px;border-radius:999px;white-space:nowrap}
-.mk.ok{background:#ecfdf5;color:#16a34a}
-.mk.bad{background:#fef2f2;color:#dc2626}
+.dot{display:inline-block;flex:0 0 auto;width:8px;height:8px;border-radius:50%;margin-left:auto}
+.dot.bad{background:#ef4444;box-shadow:0 0 0 3px rgba(239,68,68,.10)}
+.dot.ok{background:#3b82f6;box-shadow:0 0 0 3px rgba(59,130,246,.12)}
+
+/* ---------- 历史按天分组 ---------- */
+.day{border-bottom:1px solid #eceef1}
+.day-head{display:flex;align-items:center;gap:8px;width:100%;padding:12px 2px;border:0;
+  background:transparent;font:15px/1.5 inherit;color:var(--text);cursor:pointer;text-align:left}
+.day-head .chev{font-size:11px;color:var(--dim);transition:transform .22s ease;display:inline-block}
+.day.open .day-head .chev{transform:rotate(90deg)}
+.day-body{display:none;padding:0 0 8px}
+.day.open .day-body{display:block}
+.rec{padding:9px 2px;border-bottom:1px dashed #f2f3f5;font-size:14px}
+.rec:last-child{border-bottom:0}
+.rec .sum{display:flex;align-items:center;gap:8px}
+.rec .txt{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pill{font-size:11px;padding:1px 7px;border-radius:999px;flex:0 0 auto}
+.pill.ok{background:#ecfdf5;color:#16a34a}
+.pill.mid{background:#fffbeb;color:#d97706}
+.pill.no{background:#fef2f2;color:#dc2626}
+
+/* ---------- 疑问本 ---------- */
+.nrow{padding:10px 0;border-bottom:1px dashed #f1f2f4}
+.nrow:last-child{border-bottom:0}
+.nrow .nt{font-size:14px;line-height:1.6;white-space:pre-wrap}
+.nrow .nm{display:flex;align-items:center;gap:8px;margin-top:5px;font-size:11.5px;color:var(--dim)}
+.nrow .del{margin-left:auto;border:0;background:none;color:#cbd5e1;cursor:pointer;font-size:14px;padding:2px 6px}
+.nrow .del:hover{color:#ef4444}
+
+/* ---------- 做题页：顶部进度不跟随滚动 + 手机排版 ---------- */
+.progress{position:static!important;top:auto!important;background:transparent;
+  padding:6px 0 2px;margin-bottom:6px}
+.phead{font-size:12.5px}
+/* 判分栏也别粘着，避免和底部 tab 打架 */
+.grade{position:static!important;background:transparent;padding:10px 0 4px;margin-top:10px}
+.stem pre,.ref pre{font-size:12.5px;line-height:1.55;white-space:pre;overflow-x:auto;
+  -webkit-overflow-scrolling:touch;tab-size:4}
+.tabbar{transform:translateZ(0);backface-visibility:hidden;will-change:transform}
+
+@media(max-width:720px){
+  .card{padding:14px 14px 12px}
+  .card h1{font-size:17px}
+  .stem{font-size:15px;line-height:1.66}
+  .stem pre,.ref pre{font-size:11.5px;line-height:1.5;padding:10px 11px;border-radius:9px}
+  .stem table,.ref table{font-size:13px}
+  .stem h3,.ref h3{font-size:15px}
+  .note-panel textarea{font-size:14px}
+}
 
 /* ---------- 疑问小窗 ---------- */
 .fab{position:fixed;right:18px;bottom:96px;z-index:40;width:50px;height:50px;border-radius:50%;
@@ -375,12 +422,12 @@ body{padding-bottom:78px}
         '<div class="acc-body">' +
         leaves.map(t => {
           const st = topicStatus(t);
-          const mk = st === 'ok' ? '<span class="mk ok">✓ 掌握</span>'
-            : st === 'bad' ? '<span class="mk bad">● 未掌握</span>' : '';
+          const dot = st === 'ok' ? '<span class="dot ok" title="已掌握"></span>'
+            : st === 'bad' ? '<span class="dot bad" title="写过，还没掌握"></span>' : '';
           const n = BANK.filter(q => q.topic === t).length;
           return '<label class="leaf"><input type="checkbox" name="topic" value="' + esc(t) + '">' +
-            '<span>' + esc(t) + '</span>' + mk +
-            '<span class="muted" style="margin-left:8px">' + n + '</span></label>';
+            '<span>' + esc(t) + '</span>' +
+            '<span class="muted" style="margin-left:auto">' + n + '</span>' + dot + '</label>';
         }).join('') +
         '</div></div>';
     });
@@ -412,22 +459,89 @@ body{padding-bottom:78px}
       }).join('') + '</div>' : '<div class="card"><p class="muted">池子是空的。</p></div>');
   }
 
+  const openDays = new Set();
+  function dayKey(ts) {
+    const d = new Date(ts);
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' +
+      String(d.getDate()).padStart(2, '0');
+  }
+  function dayLabel(k) {
+    const p = k.split('-');
+    return Number(p[1]) + ' 月 ' + Number(p[2]) + ' 日';
+  }
+
   function viewHist() {
-    const list = S.attempts.slice().sort((a, b) => b.ts - a.ts).slice(0, 120);
-    if (!list.length) return '<div class="card"><p class="muted">还没有作答记录。</p></div>';
-    return '<div class="card"><h1>作答历史</h1><p class="muted">点开回看你当时写的原文。</p></div>' +
-      '<div class="list">' + list.map(a => {
-        const q = qById(a.qid); if (!q) return '';
-        const cls = a.grade === 2 ? 'ok' : (a.grade === 1 ? 'mid' : 'no');
-        return '<div class="item"><div class="t">' + esc(q.plain) + '</div>' +
-          '<div class="m"><span class="badge ' + cls + '">' + GRADE[a.grade] + '</span>' +
-          '<span>' + QT[q.qtype] + '</span><span>' + esc(q.topic) + '</span>' +
-          '<span>' + new Date(a.ts).toLocaleString() + '</span></div>' +
-          '<details><summary>回看这题</summary>' +
-          '<div class="ansbox">' + q.stem_html + '</div>' +
-          '<div class="myans">' + (a.answer ? esc(a.answer) : '（没写文字，直接自评）') + '</div>' +
-          '<div class="label">参考答案</div><div class="ansbox">' + q.answer_html + '</div>' +
-          '</details></div>';
+    const nCount = allNotesFlat().length;
+    const head = '<div class="card"><h1>作答历史</h1>' +
+      '<div class="row" style="margin-top:8px">' +
+      '<a class="btn" href="#notes">疑问本 ' + nCount + '</a>' +
+      '<a class="btn" href="#pick?mode=wrong">错题重练</a></div></div>';
+    if (!S.attempts.length) return head + '<div class="card"><p class="muted">还没有作答记录。</p></div>';
+
+    const groups = {};
+    S.attempts.slice().sort((a, b) => b.ts - a.ts).forEach(a => {
+      const k = dayKey(a.ts);
+      (groups[k] = groups[k] || []).push(a);
+    });
+    const days = Object.keys(groups).sort().reverse();
+    if (!openDays.size) openDays.add(days[0]);
+
+    return head + '<div class="card">' + days.map(k => {
+      const list = groups[k];
+      const right = list.filter(a => a.grade === 2).length;
+      const acc = Math.round(right * 100 / list.length);
+      return '<div class="day' + (openDays.has(k) ? ' open' : '') + '" data-day="' + k + '">' +
+        '<button class="day-head" type="button"><span class="chev">▶</span>' +
+        '<span>' + dayLabel(k) + '</span>' +
+        '<span class="muted">' + list.length + ' 题</span>' +
+        '<span class="muted" style="margin-left:auto">正确率 ' + acc + '%</span></button>' +
+        '<div class="day-body">' + list.map(a => {
+          const q = qById(a.qid); if (!q) return '';
+          const cls = a.grade === 2 ? 'ok' : (a.grade === 1 ? 'mid' : 'no');
+          const ns = notesOf(a.qid);
+          return '<div class="rec">' +
+            '<div class="sum"><span class="txt">' + esc(q.plain) + '</span>' +
+            '<span class="pill ' + cls + '">' + GRADE[a.grade] + '</span></div>' +
+            '<details><summary>回看</summary>' +
+            '<div class="muted" style="margin:6px 0">' + new Date(a.ts).toLocaleTimeString() +
+            ' · ' + QT[q.qtype] + ' · ' + esc(q.topic) + '</div>' +
+            '<div class="ansbox">' + q.stem_html + '</div>' +
+            '<div class="myans">' + (a.answer ? esc(a.answer) : '（没写文字，直接自评）') + '</div>' +
+            (ns.length ? '<div class="label">我的疑问</div>' +
+              ns.map(n => '<div class="note-item">' + esc(n.text) + '</div>').join('') : '') +
+            '<div class="label">参考答案</div><div class="ansbox">' + q.answer_html + '</div>' +
+            '</details></div>';
+        }).join('') + '</div></div>';
+    }).join('') + '</div>';
+  }
+
+  function viewNotes() {
+    const o = notesAll();
+    const rows = [];
+    Object.keys(o).forEach(qid => (o[qid] || []).forEach(n => rows.push({ qid: qid, n: n })));
+    const head = '<div class="card"><h1>疑问本</h1>' +
+      '<p class="muted">按大纲节归类。搞懂了就点 ✕ 删掉。</p></div>';
+    if (!rows.length) return head + '<div class="card"><p class="muted">还没有记录疑问。</p></div>';
+
+    const groups = {};
+    rows.forEach(r => {
+      const q = qById(r.qid);
+      const k = q ? q.topic : '通用 / 非题目';
+      (groups[k] = groups[k] || []).push(r);
+    });
+
+    return head + '<div class="card">' +
+      Object.keys(groups).sort((a, b) => a.localeCompare(b, 'zh', { numeric: true })).map(k => {
+        const g = groups[k].slice().sort((x, y) => y.n.ts - x.n.ts);
+        return '<div class="acc open">' +
+          '<div class="acc-head" style="cursor:default"><span>' + esc(k) + '</span>' +
+          '<span class="muted" style="margin-left:auto;font-weight:400">' + g.length + ' 条</span></div>' +
+          '<div class="acc-body" style="max-height:none">' + g.map(r =>
+            '<div class="nrow"><div class="nt">' + esc(r.n.text) + '</div>' +
+            '<div class="nm"><span>' + (qById(r.qid) ? r.qid : '通用') + '</span>' +
+            '<span>' + new Date(r.n.ts).toLocaleString() + '</span>' +
+            '<button class="del" data-del="' + r.qid + '|' + r.n.id + '" title="删除">✕</button></div></div>'
+          ).join('') + '</div></div>';
       }).join('') + '</div>';
   }
 
@@ -713,6 +827,7 @@ body{padding-bottom:78px}
     let add = 0;
     rows.forEach(r => {
       if (!r || !r.id) return;
+      if (deletedIds().has(r.id)) return;          // 本地删过的不再拉回来
       const list = (o[r.qid] = o[r.qid] || []);
       if (list.some(n => n.id === r.id)) return;
       list.push({ id: r.id, ts: r.ts, text: r.text });
@@ -722,7 +837,8 @@ body{padding-bottom:78px}
     return add;
   }
   async function notesPush(list) {
-    const payload = list || allNotesFlat();
+    const del = deletedIds();
+    const payload = (list || allNotesFlat()).filter(n => !del.has(n.id));
     if (!payload.length) return;
     const res = await fetch(apiBase() + '/rest/v1/notes', {
       method: 'POST',
@@ -730,6 +846,26 @@ body{padding-bottom:78px}
       body: JSON.stringify(payload)
     });
     if (!res.ok) throw new Error('notes 上传 ' + res.status);
+  }
+  const DELK = 'cquiz.notes.deleted.v1';
+  function deletedIds() {
+    try { return new Set(JSON.parse(localStorage.getItem(DELK)) || []); } catch (e) { return new Set(); }
+  }
+  function markDeleted(id) {
+    const s = deletedIds();
+    s.add(id);
+    localStorage.setItem(DELK, JSON.stringify([...s]));
+  }
+  function deleteNote(qid, id) {
+    const o = notesAll();
+    o[qid] = (o[qid] || []).filter(n => n.id !== id);
+    if (!o[qid].length) delete o[qid];
+    notesSave(o);
+    markDeleted(id);                               // 本地留墓碑，云端下次也拉不回来
+    if (cloudReady()) {
+      fetch(apiBase() + '/rest/v1/notes?id=eq.' + encodeURIComponent(id),
+        { method: 'DELETE', headers: hdr(cloudCfg()) }).catch(() => { });
+    }
   }
   function currentQid() {
     if (session && session.pos < session.queue.length) return session.queue[session.pos].id;
@@ -811,7 +947,8 @@ body{padding-bottom:78px}
   }
 
   /* ---------------- 路由 ---------------- */
-  const VIEWS = { home: viewHome, pick: viewPick, wrong: viewWrong, hist: viewHist, more: viewMore, quiz: viewQuiz };
+  const VIEWS = { home: viewHome, pick: viewPick, wrong: viewWrong, hist: viewHist,
+                  notes: viewNotes, more: viewMore, quiz: viewQuiz };
 
   function route() {
     // hash 里可能带查询串（#pick?mode=wrong），页面名要先把 ? 之后切掉
@@ -825,6 +962,26 @@ body{padding-bottom:78px}
     if (name === 'wrong') {
       const d = $('#drill');
       if (d) d.addEventListener('click', () => { location.hash = '#pick?mode=wrong'; });
+    }
+    if (name === 'hist') {
+      document.querySelectorAll('.day-head').forEach(h => {
+        h.addEventListener('click', () => {
+          const d = h.parentElement;
+          d.classList.toggle('open');
+          const k = d.dataset.day;
+          if (d.classList.contains('open')) openDays.add(k); else openDays.delete(k);
+        });
+      });
+    }
+    if (name === 'notes') {
+      document.querySelectorAll('.del').forEach(b => {
+        b.addEventListener('click', () => {
+          const parts = (b.dataset.del || '').split('|');
+          if (!confirm('删掉这条疑问？')) return;
+          deleteNote(parts[0], parts[1]);
+          route();
+        });
+      });
     }
     if (name === 'home') {
       document.querySelectorAll('[data-mode=wrong]').forEach(a =>
@@ -877,9 +1034,11 @@ body{padding-bottom:78px}
     document.getElementById('root').innerHTML = '<div class="wrap" id="app"></div>' + nav();
     window.addEventListener('hashchange', route);
     mountNote();
-    // 自检钩子：?selftest=1 直接进答题卡，方便无头浏览器验证渲染
-    if (/[?&]selftest=1/.test(location.search) && BANK.length) {
-      session = { queue: BANK.slice(0, 3), pos: 0 };
+    // 自检钩子：?selftest=1 进答题卡（可跟题号，如 ?selftest=9）
+    const st = location.search.match(/[?&]selftest=(\d+)/);
+    if (st && BANK.length) {
+      const i = Math.max(0, Math.min(parseInt(st[1], 10) - 1, BANK.length - 1));
+      session = { queue: BANK.slice(i, i + 3), pos: 0 };
       location.hash = '#quiz';
     }
     route();
