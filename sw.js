@@ -8,12 +8,28 @@ self.addEventListener('activate', e => {
     ks.filter(k => k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim()));
 });
 self.addEventListener('fetch', e => {
-  if (e.request.method !== 'GET') return;
+  const req = e.request;
+  if (req.method !== 'GET') return;
+
+  // 页面导航：先联网，拿到最新版；断网才回落到缓存
+  // （免得改了题库后，旧页面被缓存一直挡住）
+  if (req.mode === 'navigate') {
+    e.respondWith(
+      fetch(req).then(resp => {
+        const copy = resp.clone();
+        caches.open(CACHE).then(c => c.put('./index.html', copy)).catch(() => {});
+        return resp;
+      }).catch(() => caches.match('./index.html'))
+    );
+    return;
+  }
+
+  // 其他静态资源：缓存优先
   e.respondWith(
-    caches.match(e.request).then(hit => hit || fetch(e.request).then(resp => {
+    caches.match(req).then(hit => hit || fetch(req).then(resp => {
       const copy = resp.clone();
-      caches.open(CACHE).then(c => c.put(e.request, copy)).catch(() => {});
+      caches.open(CACHE).then(c => c.put(req, copy)).catch(() => {});
       return resp;
-    }).catch(() => caches.match('./index.html')))
+    }))
   );
 });
