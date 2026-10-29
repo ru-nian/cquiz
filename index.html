@@ -1,0 +1,507 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#f5f6f8">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>C 刷题</title>
+<link rel="manifest" href="./manifest.webmanifest">
+<style>:root{
+  --bg:#f5f6f8; --card:#fff; --text:#1c1f24; --dim:#6b7280; --line:#e5e7eb;
+  --accent:#2f6fed; --good:#16a34a; --mid:#d97706; --bad:#dc2626;
+  --radius:14px;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0}
+body{
+  background:var(--bg);color:var(--text);
+  font:16px/1.7 system-ui,-apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  padding-bottom:64px;
+}
+a{color:var(--accent);text-decoration:none}
+img{max-width:100%}
+.wrap{max-width:820px;margin:0 auto;padding:0 14px}
+
+/* ---------- 顶栏 ---------- */
+.topbar{position:sticky;top:0;z-index:20;background:rgba(245,246,248,.92);backdrop-filter:blur(8px);
+  border-bottom:1px solid var(--line)}
+.topbar .inner{max-width:820px;margin:0 auto;padding:10px 14px;display:flex;align-items:center;gap:14px}
+.brand{font-weight:700;font-size:15px;letter-spacing:.3px}
+.nav{display:flex;gap:2px;margin-left:auto;flex-wrap:wrap}
+.nav a{padding:6px 10px;border-radius:9px;color:var(--dim);font-size:14px}
+.nav a.on{color:var(--accent);background:#e8efff;font-weight:600}
+
+/* ---------- 底部 tab（手机） ---------- */
+.tabbar{display:none}
+@media(max-width:720px){
+  .nav{display:none}
+  .tabbar{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:30;background:#fff;
+    border-top:1px solid var(--line);padding:6px 0 calc(6px + env(safe-area-inset-bottom))}
+  .tabbar a{flex:1;text-align:center;font-size:12px;color:var(--dim);padding:4px 0}
+  .tabbar a.on{color:var(--accent);font-weight:600}
+  .tabbar .ico{display:block;font-size:17px;line-height:1.3}
+}
+
+/* ---------- 卡片 ---------- */
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+  padding:18px 18px 16px;margin:14px 0;box-shadow:0 1px 2px rgba(16,24,40,.04)}
+.card h1{font-size:19px;margin:0 0 10px}
+.card h2{font-size:16px;margin:18px 0 8px}
+.meta{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.chip{font-size:12px;color:var(--dim);background:#f0f1f3;border-radius:999px;padding:2px 9px}
+.chip.t{background:#e8efff;color:#2f6fed}
+
+.grid{display:grid;gap:10px}
+.grid.g2{grid-template-columns:1fr 1fr}
+.grid.g4{grid-template-columns:repeat(4,1fr)}
+@media(max-width:720px){.grid.g4{grid-template-columns:1fr 1fr}.grid.g2{grid-template-columns:1fr}}
+
+.stat{background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px}
+.stat .n{font-size:22px;font-weight:700}
+.stat .l{font-size:12px;color:var(--dim)}
+
+/* ---------- 按钮 ---------- */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;
+  border:1px solid var(--line);background:#fff;color:var(--text);border-radius:11px;
+  padding:10px 14px;font-size:15px;cursor:pointer;font-family:inherit;min-height:44px}
+.btn:active{transform:scale(.985)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+.btn.ghost{background:#fff}
+.btn.block{width:100%}
+.btn.bad{border-color:#fecaca;background:#fef2f2;color:var(--bad);font-weight:600}
+.btn.mid{border-color:#fde68a;background:#fffbeb;color:var(--mid);font-weight:600}
+.btn.good{border-color:#bbf7d0;background:#f0fdf4;color:var(--good);font-weight:600}
+.btn:disabled{opacity:.5}
+.row{display:flex;gap:10px;flex-wrap:wrap}
+.row>.btn{flex:1}
+
+/* ---------- 练题页 ---------- */
+.progress{position:sticky;top:41px;z-index:15;background:var(--bg);padding:10px 0 4px}
+@media(max-width:720px){.progress{top:41px}}
+.phead{display:flex;align-items:center;justify-content:space-between;font-size:13px;color:var(--dim);margin-bottom:6px}
+.track{height:5px;background:#e6e8ec;border-radius:99px;overflow:hidden}
+.track i{display:block;height:100%;width:0;background:var(--accent);transition:width .25s}
+
+.stem{font-size:16.5px;line-height:1.75}
+.stem pre,.ref pre{background:#0f172a;color:#e6edf7;border-radius:10px;padding:12px 13px;overflow:auto;
+  white-space:pre-wrap;word-break:break-word;
+  font:13.5px/1.6 ui-monospace,SFMono-Regular,Consolas,"Courier New",monospace;margin:10px 0}
+.stem code,.ref code{background:#f0f1f3;padding:1px 5px;border-radius:5px;
+  font:13.5px/ui-monospace,SFMono-Regular,Consolas,monospace}
+.stem pre code,.ref pre code{background:none;padding:0;font-size:inherit}
+.stem table,.ref table{border-collapse:collapse;width:100%;margin:10px 0;font-size:14px;display:block;overflow-x:auto}
+.stem th,.stem td,.ref th,.ref td{border:1px solid var(--line);padding:6px 9px;text-align:left}
+.stem blockquote,.ref blockquote{margin:10px 0;padding:8px 12px;border-left:3px solid #cbd5e1;
+  background:#f8fafc;color:#475569;border-radius:0 8px 8px 0}
+
+textarea{width:100%;min-height:130px;border:1px solid var(--line);border-radius:12px;padding:12px;
+  font:15px/1.7 inherit;resize:vertical;background:#fff;font-family:inherit}
+textarea:focus{outline:2px solid #c9dafc;border-color:var(--accent)}
+
+.opts{display:flex;flex-direction:column;gap:9px;margin:12px 0}
+.opt{display:flex;gap:10px;align-items:flex-start;text-align:left;width:100%;
+  border:1px solid var(--line);background:#fff;border-radius:12px;padding:12px;cursor:pointer;
+  font:15px/1.6 inherit;color:var(--text)}
+.opt .k{font-weight:700;color:var(--dim);min-width:18px}
+.opt.sel{border-color:var(--accent);background:#f5f8ff}
+.opt.ok{border-color:#bbf7d0;background:#f0fdf4}
+.opt.no{border-color:#fecaca;background:#fef2f2}
+
+.ref{margin-top:16px;border-top:1px dashed var(--line);padding-top:14px}
+.label{font-size:12px;font-weight:700;color:var(--accent);letter-spacing:.5px;
+  margin:14px 0 6px;text-transform:none}
+.label:first-child{margin-top:0}
+
+.grade{position:sticky;bottom:0;background:linear-gradient(to top,var(--bg) 70%,transparent);
+  padding:12px 0 8px;margin-top:14px}
+.hidden{display:none!important}
+.muted{color:var(--dim);font-size:13px}
+
+/* ---------- 列表 ---------- */
+.list{display:flex;flex-direction:column;gap:10px}
+.item{background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.item .t{font-size:15px;line-height:1.6}
+.item .m{font-size:12px;color:var(--dim);margin-top:6px;display:flex;gap:8px;flex-wrap:wrap}
+details summary{cursor:pointer;color:var(--accent);font-size:14px;margin-top:8px;list-style:none}
+details summary::-webkit-details-marker{display:none}
+details summary::before{content:"▸ ";}
+details[open] summary::before{content:"▾ "}
+.ansbox{margin-top:10px;padding:12px;background:#f8fafc;border-radius:10px;border:1px solid var(--line)}
+.myans{margin-top:8px;padding:10px 12px;background:#fffdf5;border:1px solid #fde68a;border-radius:10px;
+  font-size:14.5px;white-space:pre-wrap}
+.badge{font-size:12px;border-radius:6px;padding:1px 7px;font-weight:600}
+.badge.ok{background:#ecfdf5;color:var(--good)}
+.badge.no{background:#fef2f2;color:var(--bad)}
+.badge.mid{background:#fffbeb;color:var(--mid)}
+
+input[type=text],input[type=number],select{border:1px solid var(--line);border-radius:10px;
+  padding:10px 12px;font:15px inherit;background:#fff;width:100%}
+label.f{display:block;font-size:13px;color:var(--dim);margin:12px 0 5px}
+.bars{display:flex;align-items:flex-end;gap:4px;height:90px}
+.bars .b{flex:1;background:#dbeafe;border-radius:4px 4px 0 0;min-height:2px;position:relative}
+.bars .b i{position:absolute;left:0;right:0;bottom:0;background:var(--accent);border-radius:4px 4px 0 0}
+
+#root{padding-bottom:8px}
+.tabbar a{text-decoration:none}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>window.__BANK__ = [{"id": "P01", "topic": "1.1 指针的本质以及指针的必要性", "outline_ref": "1.1", "qtype": "short", "stage_label": "概念", "difficulty": 1, "plain": "指针的必要性体现在哪？ 把大纲里列的五个场景各用一句话说清楚，再回答一句：为什么写 Linux 驱动离不开指针？", "stem_html": "<p><strong>指针的必要性体现在哪？<\/strong><\/p>\n<p>把大纲里列的五个场景各用一句话说清楚，再回答一句：为什么写 Linux 驱动离不开指针？<\/p>", "answer_html": "<table><thead><tr><th>场景<\/th><th>一句话<\/th><\/tr><\/thead><tbody><tr><td>高效访问内存<\/td><td>传地址而不是拷贝整块数据，大结构体、大缓冲区才不会白搬运<\/td><\/tr><tr><td>动态内存分配<\/td><td><code>malloc<\/code> 只能返回地址，堆上的对象没有名字，只能用指针访问<\/td><\/tr><tr><td>函数参数传递<\/td><td>C 只有值传递，想让函数改到调用者的变量，必须把地址传进去<\/td><\/tr><tr><td>复杂数据结构<\/td><td>链表/树/图/队列的结点之间靠指针串起来，数组做不到动态伸缩<\/td><\/tr><tr><td>直接操作硬件<\/td><td>寄存器就是固定地址，只能把地址强转成指针去读写<\/td><\/tr><\/tbody><\/table>\n<p><strong>为什么驱动离不开指针：<\/strong><\/p>\n<p>内核给驱动的东西全是「运行时才知道的地址」——设备号、<code>ioremap<\/code> 返回的基址、<br><code>inode<\/code>、<code>file<\/code>、<code>private_data<\/code>，没有一个是编译期常量。<br>不通过指针，你没法访问任何一块硬件内存，也没法让内核回调你自己的函数（函数指针）。<\/p>\n<p><strong>要点（自评用）<\/strong><\/p>\n<ol>\n<li>五个场景说得出，且知道每个场景「为什么非指针不可」。<\/li>\n<li>能说出「C 只有值传递，所以要传地址」。<\/li>\n<li>驱动那问能提到「寄存器/ioremap 是运行时地址」或「回调靠函数指针」。<\/li>\n<\/ol>"}, {"id": "P02", "topic": "1.2 指针的声明与初始化", "outline_ref": "1.2", "qtype": "short", "stage_label": "常见错误", "difficulty": 2, "plain": "下面两行错在哪？ 顺便回答： int p = &a; 里的 & 到底做了什么？ int p = 5; 又为什么不行？", "stem_html": "<p><strong>下面两行错在哪？<\/strong><\/p>\n<pre><code class=\"lang-c\">int *p;\n*p = 5;<\/code><\/pre>\n<p>顺便回答：<code>int *p = &amp;a;<\/code> 里的 <code>&amp;<\/code> 到底做了什么？<code>int *p = 5;<\/code> 又为什么不行？<\/p>", "answer_html": "<p><strong>错在 <code>p<\/code> 没有初始化。<\/strong><\/p>\n<p><code>int *p;<\/code> 只是在栈上划了一个 8 字节的坑，里面装的是<strong>上次别人留下的垃圾值<\/strong>。<br><code>*p = 5<\/code> 就是「往一个随机地址写 5」→ 未定义行为，轻则改坏别的变量，重则段错误。<\/p>\n<p>这类指针叫<strong>野指针<\/strong>：指向不确定地址。<\/p>\n<p><strong>正确写法二选一：<\/strong><\/p>\n<pre><code class=\"lang-c\">int a;\nint *p = &amp;a;      /* 指向一个真实存在的对象 */\n*p = 5;           /* 现在写的是 a */\n\nint *q = malloc(sizeof(int));   /* 或者指向堆 */\nif (!q) return -1;\n*q = 5;<\/code><\/pre>\n<p><strong><code>&amp;<\/code> 做了什么<\/strong>：取操作数的地址，得到一个指针值。<br><code>int *p = &amp;a;<\/code> 里，<code>&amp;a<\/code> 的类型是 <code>int *<\/code>，正好和 <code>p<\/code> 匹配——所以初始化指针，本质是「给它一个合法的地址」。<\/p>\n<p><strong><code>int *p = 5;<\/code> 为什么不行<\/strong>：类型不匹配。<code>p<\/code> 要的是地址，<code>5<\/code> 是整数。<br>（真要把数字当地址用，必须显式强转：<code>int *p = (int *)5;<\/code>——嵌入式里访问固定寄存器就这么干，<br>但那要求你确知 <code>5<\/code> 是个有效地址。）<\/p>\n<p><strong>要点（自评用）<\/strong><\/p>\n<ol>\n<li>说出「未初始化 → 内容是垃圾 → 往垃圾地址写 = UB」。<\/li>\n<li>给出两种正确初始化方式（已有对象 / 堆）。<\/li>\n<li>指出 <code>&amp;<\/code> 是取地址，<code>int *p = 5<\/code> 是类型不匹配（不是赋值）。<\/li>\n<\/ol>"}, {"id": "P03", "topic": "1.3 指针的解引用", "outline_ref": "1.3", "qtype": "short", "stage_label": "概念", "difficulty": 1, "plain": "这个符号在两处出现，意思完全不同： 分别是什么含义？另外， & 和 是什么关系？", "stem_html": "<p><strong><code>*<\/code> 这个符号在两处出现，意思完全不同：<\/strong><\/p>\n<pre><code class=\"lang-c\">int *p = &amp;a;      /* ① 这里的 * */\nint b = *p;       /* ② 这里的 * */<\/code><\/pre>\n<p>分别是什么含义？另外，<code>&amp;<\/code> 和 <code>*<\/code> 是什么关系？<\/p>", "answer_html": "<table><thead><tr><th>位置<\/th><th><code>*<\/code> 的身份<\/th><th>含义<\/th><\/tr><\/thead><tbody><tr><td>① 声明语句里<\/td><td>类型的一部分<\/td><td><code>int *<\/code> 是「指向 int 的指针」类型，<code>p<\/code> 是变量名。<strong>这一行没有解引用<\/strong><\/td><\/tr><tr><td>② 表达式里<\/td><td>一元运算符（解引用）<\/td><td>取出 <code>p<\/code> 所指地址里的那个 int，赋给 <code>b<\/code><\/td><\/tr><\/tbody><\/table>\n<p><strong>最容易混的一句话<\/strong>：<code>int *p = &amp;a;<\/code> 里那个 <code>*<\/code> 不干活，它只是告诉编译器「p 是 int 指针」。<br>真正干活的是 <code>&amp;a<\/code>。<\/p>\n<p><strong><code>&amp;<\/code> 与 <code>*<\/code> 的关系<\/strong>：互为逆运算。<\/p>\n<pre><code class=\"lang-c\">int a = 10;\nint *p = &amp;a;\n\nprintf(&quot;%d&quot;, *&amp;a);    /* 10：先取地址，再顺着地址取回来 */\nprintf(&quot;%d&quot;, *p);     /* 10 */\nprintf(&quot;%p&quot;, &amp;*p);    /* 等于 &amp;a：先解引用再取地址，还是原地址 */<\/code><\/pre>\n<p><code>*&amp;a<\/code> 和 <code>&amp;*p<\/code> 都会回到起点，而且<strong>都不会真的去读内存<\/strong>（编译器直接消掉）。<\/p>\n<p><strong>一个常见误解<\/strong>：<code>int *p;<\/code> 之后 <code>*p<\/code> 并不是\"空的\"，它是\"去读 p 里那个垃圾地址指向的内容\"——<br>不是 <code>p == NULL<\/code> 那样的安全失败，而是直接 UB。<\/p>\n<p><strong>要点（自评用）<\/strong><\/p>\n<ol>\n<li>说清声明里的 <code>*<\/code> 是类型、表达式里的 <code>*<\/code> 才是解引用。<\/li>\n<li>指出 <code>*&amp;a == a<\/code>、<code>&amp;*p == p<\/code>。<\/li>\n<li>知道 <code>*p<\/code> 不会自动检查 <code>p<\/code> 是否合法。<\/li>\n<\/ol>"}, {"id": "P04", "topic": "1.4 指针与数组", "outline_ref": "1.4", "qtype": "short", "stage_label": "概念", "difficulty": 3, "plain": "数组名和指针，到底差在哪？ 从四个方面说清楚： sizeof 、 & 取地址、能否赋值、作为函数参数时发生了什么。", "stem_html": "<p><strong>数组名和指针，到底差在哪？<\/strong><\/p>\n<p>从四个方面说清楚：<code>sizeof<\/code>、<code>&amp;<\/code> 取地址、能否赋值、作为函数参数时发生了什么。<\/p>", "answer_html": "<table><thead><tr><th>方面<\/th><th>数组名 <code>a<\/code>（<code>int a[5]<\/code>）<\/th><th>指针 <code>p<\/code>（<code>int *p<\/code>）<\/th><\/tr><\/thead><tbody><tr><td><code>sizeof<\/code><\/td><td>整个数组 20 字节<\/td><td>8 字节（64 位）<\/td><\/tr><tr><td><code>&amp;a<\/code> 的类型<\/td><td><code>int (*)[5]<\/code>，<code>&amp;a + 1<\/code> 跨 20 字节<\/td><td><code>&amp;p<\/code> 是 <code>int **<\/code>，<code>&amp;p + 1<\/code> 跨 8 字节<\/td><\/tr><tr><td>能否赋值<\/td><td>不能。<code>a = p;<\/code> 编译报错，<code>a++<\/code> 也报错<\/td><td>可以随便改指向<\/td><\/tr><tr><td>函数参数<\/td><td><strong>退化成 <code>int *<\/code><\/strong>，函数里 <code>sizeof(a)<\/code> 变成 8<\/td><td>本来就是指针，原样传<\/td><\/tr><\/tbody><\/table>\n<p><strong>核心那句话<\/strong>：数组名在<strong>大多数表达式<\/strong>里被转换成「指向首元素的指针」，但它<strong>不是变量<\/strong>——<br>它没有一块内存专门存这个地址，编译器只是把它直接翻译成首元素地址。所以它不能赋值。<\/p>\n<p><strong>两个例外<\/strong>（数组名仍然是「数组类型」）：<code>sizeof(a)<\/code> 和 <code>&amp;a<\/code>。<\/p>\n<p><strong>所以：<\/strong><\/p>\n<pre><code class=\"lang-c\">void f(int a[5], int n);   /* 方括号里的 5 编译器根本不看 */\nvoid g(int *a, int n);     /* 和上面是同一个函数 */<\/code><\/pre>\n<p>函数里想拿元素个数，只能额外传 <code>n<\/code>，或者用宏：<code>#define ARRAY_SIZE(a) (sizeof(a)/sizeof((a)[0]))<\/code><br>——注意这个宏只在数组还在作用域里时有效，传参进去就废了。<\/p>\n<p><strong>要点（自评用）<\/strong><\/p>\n<ol>\n<li>四条都覆盖到，尤其「不能赋值」和「传参退化」。<\/li>\n<li>说出 <code>sizeof<\/code> 与 <code>&amp;<\/code> 是数组名\"不被转换\"的两个例外。<\/li>\n<li>知道 <code>ARRAY_SIZE<\/code> 宏在函数里失效的原因。<\/li>\n<\/ol>"}, {"id": "P05", "topic": "1.4 指针与数组", "outline_ref": "1.4", "qtype": "code_read", "stage_label": "代码用法", "difficulty": 2, "plain": "这段代码输出什么？为什么 i[a] 这种写法能跑？", "stem_html": "<p><strong>这段代码输出什么？为什么 <code>i[a]<\/code> 这种写法能跑？<\/strong><\/p>\n<pre><code class=\"lang-c\">#include &lt;stdio.h&gt;\n\nint main(void)\n{\n    int a[5] = {10, 20, 30, 40, 50};\n    int i = 2;\n\n    printf(&quot;%d\\n&quot;, a[i]);\n    printf(&quot;%d\\n&quot;, *(a + i));\n    printf(&quot;%d\\n&quot;, i[a]);\n    printf(&quot;%d\\n&quot;, *(a + i - 1));\n    return 0;\n}<\/code><\/pre>", "answer_html": "<pre><code>30\n30\n30\n20<\/code><\/pre>\n<p><strong>为什么 <code>i[a]<\/code> 能跑：<\/strong><\/p>\n<p>C 标准定义 <code>a[i]<\/code> 就等价于 <code>*(a + i)<\/code>。而加法满足交换律，<code>*(a + i)<\/code> 和 <code>*(i + a)<\/code> 是同一个东西，<br>所以 <code>i[a]<\/code> 同样成立。这也是为什么 <code>p[-1]<\/code> 合法——它就是 <code>*(p - 1)<\/code>。<\/p>\n<p><strong>但别在代码里写 <code>i[a]<\/code><\/strong>：它能编译不代表可读，审阅时会被当成 bug。<\/p>\n<p><strong><code>*(a + i - 1)<\/code> 是 20<\/strong>：先算 <code>a + i<\/code> 再减 1，等价 <code>a[1]<\/code>。指针加减的优先级和结合性都低于 <code>+<\/code>，<br>但这里括号已经说明了顺序。<\/p>\n<p><strong>真正要记住的<\/strong>：下标只是语法糖，<strong>指针运算才是本质<\/strong>。<br>理解了这一层，<code>p[-1]<\/code>、<code>*(a+2)<\/code>、<code>2[a]<\/code> 就不再是三个知识点，而是同一个知识点的三种写法。<\/p>\n<p><strong>要点（自评用）<\/strong><\/p>\n<ol>\n<li>四个输出全对。<\/li>\n<li>说出 <code>a[i] ≡ *(a+i)<\/code>，且知道是「定义」，不是巧合。<\/li>\n<li>能解释 <code>p[-1]<\/code> 同理。<\/li>\n<\/ol>"}, {"id": "P06", "topic": "1.4 指针与数组", "outline_ref": "1.4", "qtype": "short", "stage_label": "概念", "difficulty": 2, "plain": "这两个声明分别是什么？ 在 64 位系统上 sizeof(p) 和 sizeof(q) 各是多少？为什么？各举一个实际用途。", "stem_html": "<p><strong>这两个声明分别是什么？<\/strong><\/p>\n<pre><code class=\"lang-c\">int *p[10];\nint (*q)[10];<\/code><\/pre>\n<p>在 64 位系统上 <code>sizeof(p)<\/code> 和 <code>sizeof(q)<\/code> 各是多少？为什么？各举一个实际用途。<\/p>", "answer_html": "<p><strong>一句话区分<\/strong>：<code>[]<\/code> 的优先级高于 <code>*<\/code>，所以先看变量名跟谁结合。<\/p>\n<table><thead><tr><th>声明<\/th><th>读法<\/th><th>本质<\/th><th>sizeof（64 位）<\/th><\/tr><\/thead><tbody><tr><td><code>int *p[10]<\/code><\/td><td><code>p<\/code> 先和 <code>[10]<\/code> 结合<\/td><td>数组，10 个元素，每个是 <code>int *<\/code><\/td><td>80 字节<\/td><\/tr><tr><td><code>int (*q)[10]<\/code><\/td><td>括号强制 <code>q<\/code> 先和 <code>*<\/code> 结合<\/td><td>指针，指向「含 10 个 int 的数组」<\/td><td>8 字节<\/td><\/tr><\/tbody><\/table>\n<ul>\n<li><strong>指针数组 <code>p<\/code><\/strong>：<code>p[0] = &amp;x;<\/code>，每个坑位存一个地址。<\/li>\n<\/ul>\n<p>  典型用途：字符串表 <code>char *names[] = {\"abc\", \"def\"};<\/code>（argv 就是这东西）<\/p>\n<ul>\n<li><strong>数组指针 <code>q<\/code><\/strong>：<code>(*q)[3]<\/code> 才是那个 int，<code>q + 1<\/code> 一次跨 40 字节。<\/li>\n<\/ul>\n<p>  典型用途：二维数组传参 <code>void f(int (*a)[4], int rows)<\/code>，这样函数里 <code>a[i][j]<\/code> 才是对的。<\/p>\n<p><strong>为什么二维数组不能写成 <code>int **<\/code><\/strong>：<br><code>int a[3][4]<\/code> 在内存里是连续的 12 个 int，<code>a<\/code> 的类型是 <code>int (*)[4]<\/code>。<br>传成 <code>int **<\/code> 后，函数会以为 <code>a<\/code> 里存的是 3 个指针、再顺着指针找 int——实际读到的是整数数据被当作地址，必崩。<\/p>\n<p><strong>要点（自评用）<\/strong><\/p>\n<ol>\n<li>说出 <code>[]<\/code> 优先级高于 <code>*<\/code>，并正确命名两者（指针数组 / 数组指针）。<\/li>\n<li>sizeof 分别是 80 和 8，理由正确。<\/li>\n<li>用途方向对；能顺带说出二维数组传参要用 <code>int (*)[N]<\/code> 更好。<\/li>\n<\/ol>"}, {"id": "P07", "topic": "1.4 指针与数组", "outline_ref": "1.4", "qtype": "short", "stage_label": "概念", "difficulty": 3, "plain": "用右左法则读这个声明： p 到底是什么？把你的推理过程一步步写出来。", "stem_html": "<p><strong>用右左法则读这个声明：<\/strong><\/p>\n<pre><code class=\"lang-c\">int *(*p[10])(void);<\/code><\/pre>\n<p><code>p<\/code> 到底是什么？把你的推理过程一步步写出来。<\/p>", "answer_html": "<p><strong>结论<\/strong>：<code>p<\/code> 是一个数组（10 个元素），每个元素是「指向函数的指针」，<br>这些函数不接受参数、返回 <code>int *<\/code>。<\/p>\n<p><strong>右左法则（从变量名出发，先右后左，遇到括号就跳出来）<\/strong><\/p>\n<table><thead><tr><th>步<\/th><th>现在的片段<\/th><th>动作<\/th><th>得到<\/th><\/tr><\/thead><tbody><tr><td>1<\/td><td><code>p<\/code><\/td><td>起点<\/td><td>p 是<\/td><\/tr><tr><td>2<\/td><td><code>p[10]<\/code><\/td><td>向右看 <code>[10]<\/code><\/td><td>数组，10 个元素<\/td><\/tr><tr><td>3<\/td><td><code>*<\/code> 在左边<\/td><td>向左看 <code>*<\/code><\/td><td>元素是指针<\/td><\/tr><tr><td>4<\/td><td><code>(*p[10])<\/code> 外面的 <code>(void)<\/code><\/td><td>跳出内层括号，向右看<\/td><td>指向函数，参数 <code>(void)<\/code><\/td><\/tr><tr><td>5<\/td><td>最左边的 <code>int *<\/code><\/td><td>向左看<\/td><td>函数返回 <code>int *<\/code><\/td><\/tr><\/tbody><\/table>\n<p>连起来念：**「p 是一个数组，每个元素是指针，指向参数为 void、返回 int\\* 的函数」**。<\/p>\n<p><strong>为什么会有这种声明<\/strong>：<code>p<\/code> 常用来做「命令表」——不同命令对应不同处理函数，<br>每个函数返回 <code>int *<\/code>。真实代码里一般会先用 <code>typedef<\/code> 化简：<\/p>\n<pre><code class=\"lang-c\">typedef int *(*handler_t)(void);   /* handler_t = 无参、返回 int* 的函数指针 */\nhandler_t p[10];                   /* 一目了然 */<\/code><\/pre>\n<p><strong>要点（自评用）<\/strong><\/p>\n<ol>\n<li>结论对：数组 → 指针 → 函数 → 返回 int\\*。<\/li>\n<li>能说出「先右后左、遇括号跳出」的顺序。<\/li>\n<li>知道用 typedef 化简是正解，而不是硬背。<\/li>\n<\/ol>"}, {"id": "P08", "topic": "1.4 指针与数组", "outline_ref": "1.4", "qtype": "code_read", "stage_label": "代码用法", "difficulty": 2, "plain": "这段代码两个 sizeof 各输出多少？为什么不一样？ 再问：如果 f 里要拿到 5 个元素这个信息，该怎么办？", "stem_html": "<p><strong>这段代码两个 <code>sizeof<\/code> 各输出多少？为什么不一样？<\/strong><\/p>\n<pre><code class=\"lang-c\">#include &lt;stdio.h&gt;\n\nvoid f(int a[5])\n{\n    printf(&quot;%zu\\n&quot;, sizeof(a));     /* ① */\n}\n\nint main(void)\n{\n    int a[5];\n    printf(&quot;%zu\\n&quot;, sizeof(a));     /* ② */\n    f(a);\n    return 0;\n}<\/code><\/pre>\n<p>再问：如果 <code>f<\/code> 里要拿到 5 个元素这个信息，该怎么办？<\/p>", "answer_html": "<pre><code>② 20      （5 × 4 字节）\n① 8       （64 位指针大小；32 位是 4）<\/code><\/pre>\n<p><strong>原因<\/strong>：数组作为函数参数时<strong>退化成指针<\/strong>。<code>void f(int a[5])<\/code> 里那个 <code>5<\/code> 编译器完全不看，<br>形参 <code>a<\/code> 的类型就是 <code>int *<\/code>，所以 <code>sizeof(a)<\/code> 是指针大小。<\/p>\n<p>这也是 C 里一个经典陷阱：<strong>在函数里永远拿不到调用者数组的长度<\/strong>。<\/p>\n<p><strong>要拿长度，只有三种办法：<\/strong><\/p>\n<ol>\n<li>额外传一个参数：<code>void f(int *a, size_t n);<\/code>（最常用）<\/li>\n<li>约定哨兵值：字符串用 <code>'\\0'<\/code> 结尾，指针数组用 <code>NULL<\/code> 结尾（argv 就是这么干的）<\/li>\n<li>把数组包在结构体里传（结构体能带长度）：<\/li>\n<\/ol>\n<pre><code class=\"lang-c\">struct buf { size_t len; int data[5]; };\nvoid f(struct buf *b) { /* b-&gt;len 可用 */ }<\/code><\/pre>\n<p><strong>注意<\/strong>：<code>#define ARRAY_SIZE(a) (sizeof(a)/sizeof((a)[0]))<\/code> 宏在 <code>main<\/code> 里算得出 5，<br>传进 <code>f<\/code> 之后再套这个宏就得到 2（64 位下 8/4）——毫无意义，还容易误用。<\/p>\n<p><strong>要点（自评用）<\/strong><\/p>\n<ol>\n<li>① 是 8、② 是 20，并说对「退化」这个原因。<\/li>\n<li>指出函数里 <code>sizeof<\/code> 拿到的是指针大小。<\/li>\n<li>说出至少两种拿长度的办法。<\/li>\n<\/ol>"}, {"id": "P09", "topic": "2.1 指针 + N / 2.2 指针 - N / 2.3 指针 - 指针", "outline_ref": "2.1-2.3", "qtype": "code_read", "stage_label": "代码用法", "difficulty": 2, "plain": "假设 int 4 字节、指针 8 字节，写出 6 个输出的值：", "stem_html": "<p>假设 <code>int<\/code> 4 字节、指针 8 字节，写出 6 个输出的值：<\/p>\n<pre><code class=\"lang-c\">#include &lt;stdio.h&gt;\n#include &lt;stddef.h&gt;\n\nint main(void)\n{\n    int a[5] = {10, 20, 30, 40, 50};\n    int *p = a;\n    int *q = &amp;a[3];\n    int *end = &amp;a[5];        /* 末尾后一格：允许形成，不允许解引用 */\n\n    printf(&quot;%d\\n&quot;,  *(p + 2));     /* ① */\n    printf(&quot;%td\\n&quot;, q - p);        /* ② */\n    printf(&quot;%d\\n&quot;,  *(p + 1));     /* ③ */\n\n    p++;                            /* ④ */\n    printf(&quot;%d\\n&quot;, *p);\n    printf(&quot;%zu\\n&quot;, sizeof(a));    /* ⑤ */\n    printf(&quot;%zu\\n&quot;, sizeof(p));    /* ⑥ */\n    return 0;\n}<\/code><\/pre>", "answer_html": "<pre><code>① 30\n② 3\n③ 20\n④ 20\n⑤ 20      （数组：5 × 4 字节）\n⑥ 8       （指针：只存一个地址；32 位系统是 4）<\/code><\/pre>\n<ul>\n<li><strong>①<\/strong> <code>p + 2<\/code> 不是往后挪 2 字节，而是挪 <code>2 × sizeof(int) = 8<\/code> 字节，落在 <code>a[2]<\/code>。<\/li>\n<li><strong>②<\/strong> 同类型指针相减得到<strong>元素个数<\/strong>（3），不是字节数 12。反过来 <code>p - q<\/code> 是 <code>-3<\/code>。<\/li>\n<li><strong>④<\/strong> <code>p++<\/code> 让 <code>p<\/code> 自己变成 <code>&amp;a[1]<\/code>，所以 <code>*p<\/code> 是 20。<strong>这里最容易错<\/strong>——③ 在自增之前算，所以是 20 而不是 30。<\/li>\n<li><strong>⑤⑥<\/strong> 只跟类型有关，和 <code>p<\/code> 现在指向谁无关。<\/li>\n<\/ul>\n<p><strong>追问预案<\/strong>：<code>&amp;a + 1<\/code> 与 <code>a + 1<\/code> 差在哪？<br>→ <code>a<\/code> 退化成 <code>int *<\/code>，<code>a + 1<\/code> 挪 4 字节；<code>&amp;a<\/code> 的类型是 <code>int (*)[5]<\/code>，<code>&amp;a + 1<\/code> 直接挪 20 字节，跨过整个数组。<\/p>\n<p><strong>要点（自评用）<\/strong><\/p>\n<ol>\n<li>六个值全对，特别是 ③ 是 20。<\/li>\n<li>说得出「加法按元素步长、减法得元素个数」。<\/li>\n<li><code>sizeof(a)<\/code> 与 <code>sizeof(p)<\/code> 的差异解释清楚。<\/li>\n<\/ol>"}, {"id": "P10", "topic": "2.4 指针算术的前提", "outline_ref": "2.4", "qtype": "code_read", "stage_label": "常见错误", "difficulty": 3, "plain": "逐条判断 A E 是 合法且有定义 ，还是 未定义行为（UB） ，并说出理由：", "stem_html": "<p>逐条判断 A~E 是<strong>合法且有定义<\/strong>，还是<strong>未定义行为（UB）<\/strong>，并说出理由：<\/p>\n<pre><code class=\"lang-c\">int a[4] = {1, 2, 3, 4};\nint b[4] = {0};\nint *p = &amp;a[1];\n\np++;                       /* A */\nprintf(&quot;%d\\n&quot;, *p);        /* B */\nprintf(&quot;%d\\n&quot;, p[-1]);     /* C */\nprintf(&quot;%d\\n&quot;, *(a + 4));  /* D */\nprintf(&quot;%td\\n&quot;, b - a);    /* E */<\/code><\/pre>", "answer_html": "<table><thead><tr><th>语句<\/th><th>结论<\/th><th>理由<\/th><\/tr><\/thead><tbody><tr><td>A<\/td><td>合法<\/td><td><code>p<\/code> 从 <code>a[1]<\/code> 走到 <code>a[2]<\/code>，仍在数组内<\/td><\/tr><tr><td>B<\/td><td>合法，输出 3<\/td><td>解引用合法地址<\/td><\/tr><tr><td>C<\/td><td>合法，输出 2<\/td><td><code>p[-1]<\/code> 就是 <code>*(p - 1)<\/code>，回到 <code>a[1]<\/code>。下标可以是负数<\/td><\/tr><tr><td>D<\/td><td><strong>UB<\/strong><\/td><td>越界读取。<code>a + 4<\/code> 是「末尾后一格」，允许<strong>形成<\/strong>、不允许解引用<\/td><\/tr><tr><td>E<\/td><td><strong>UB<\/strong><\/td><td>两个不同数组的指针相减没有定义。多数实现会给你一个数，但那个数没有任何保证<\/td><\/tr><\/tbody><\/table>\n<p><strong>要建立的两个边界感<\/strong><\/p>\n<ol>\n<li><strong>允许形成「末尾后一格」的指针<\/strong>（做循环终止条件用），但永远不能解引用它。<\/li>\n<li><strong>指针算术只在同一个对象内部有意义<\/strong>——这正好回答你大纲 2.4 打的问号。<\/li>\n<\/ol>\n<p>   不是「只有数组才算」，而是「<strong>必须是同一个分配对象<\/strong>」；<code>malloc<\/code> 得到的块按数组对待，<br>   所以 <code>p + 1<\/code> 在堆块里完全合法。<\/p>\n<p><strong>为什么\"能跑\"不算数<\/strong>：UB 的定义就是「标准不规定会怎样」。今天跑出 3，明天开个<br><code>-O2<\/code>、换个编译器、加一行 <code>printf<\/code>，结果就变了。判 UB 看的是<strong>规则<\/strong>，不是运行结果。<\/p>\n<p><strong>要点（自评用）<\/strong><\/p>\n<ol>\n<li>D、E 判为 UB，A/B/C 判为合法。<\/li>\n<li>说出 <code>p[-1] ≡ *(p-1)<\/code>。<\/li>\n<li>记得「末尾后一格可形成、不可解引用」这条。<\/li>\n<\/ol>"}, {"id": "P11", "topic": "2.4 指针算术的前提", "outline_ref": "2.4", "qtype": "code_read", "stage_label": "代码用法", "difficulty": 3, "plain": "写出输出结果，并解释每一步：", "stem_html": "<p>写出输出结果，并解释每一步：<\/p>\n<pre><code class=\"lang-c\">#include &lt;stdio.h&gt;\n#include &lt;stddef.h&gt;\n\nstruct node {\n    int  id;\n    char name[12];\n};\n\nint main(void)\n{\n    struct node arr[3];\n    struct node *p = arr;\n    int a[4], b[4];\n\n    printf(&quot;%zu\\n&quot;, sizeof(struct node));                    /* ① */\n    printf(&quot;%td\\n&quot;, (char *)(p + 1) - (char *)p);            /* ② */\n    printf(&quot;%td\\n&quot;, &amp;arr[2] - &amp;arr[0]);                      /* ③ */\n    printf(&quot;%d\\n&quot;,  &amp;a[0] &lt; &amp;b[0]);                          /* ④ */\n    return 0;\n}<\/code><\/pre>", "answer_html": "<pre><code>① 16\n② 16\n③ 2\n④ 无意义（未指定行为），别依赖<\/code><\/pre>\n<ul>\n<li><strong>① 16<\/strong>：<code>int<\/code> 4 字节 + <code>char[12]<\/code> 12 字节 = 16，正好是 4 的倍数，不用补 padding。<\/li>\n<\/ul>\n<p>  （如果改成 <code>char name[10]<\/code>，总长 14，会补到 <strong>16<\/strong>——这就是结构体对齐。）<\/p>\n<ul>\n<li><strong>② 16<\/strong>：<code>p + 1<\/code> 跳的是<strong>一整个结构体<\/strong>，不是 1 字节、也不是 4 字节。<\/li>\n<\/ul>\n<p>  想数字节才需要先转成 <code>char *<\/code> 再相减——<code>char *<\/code> 的步长是 1，这是唯一能\"按字节走\"的指针类型。<\/p>\n<ul>\n<li><strong>③ 2<\/strong>：同类型（<code>struct node *<\/code>）指针相减，得元素个数。<\/li>\n<li><strong>④ 未指定<\/strong>：两个<strong>不同数组<\/strong>的指针用 <code>&lt;<\/code> 比较，标准没规定结果。<\/li>\n<\/ul>\n<p>  只能比较 <code>==<\/code> / <code>!=<\/code>（判断是不是同一个对象）；<code>&lt;<\/code> <code>&gt;<\/code> 只在同一对象内部才有意义。<\/p>\n<p><strong>一条能背下来的规则<\/strong>：指针的 <code>+1<\/code> 永远等于 <code>sizeof(*p)<\/code> 字节。<br>结构体指针最容易被问，因为它的 <code>sizeof<\/code> 常常不等于成员大小之和（有对齐）。<\/p>\n<p><strong>要点（自评用）<\/strong><\/p>\n<ol>\n<li>①② 都是 16，且知道 <code>p+1<\/code> 跨整个结构体。<\/li>\n<li>③ 等于 2（元素个数）。<\/li>\n<li>④ 能判定「跨对象比较无意义」。<\/li>\n<\/ol>"}, {"id": "P12", "topic": "3.1 指针与字符串", "outline_ref": "3.1", "qtype": "short", "stage_label": "概念", "difficulty": 2, "plain": "这两种写法差别很大，说清楚差在哪： 从「存在哪里」「能不能改」「 sizeof 和 strlen 各是多少」三方面对比。", "stem_html": "<p><strong>这两种写法差别很大，说清楚差在哪：<\/strong><\/p>\n<pre><code class=\"lang-c\">char s1[] = &quot;abc&quot;;\nchar *s2 = &quot;abc&quot;;<\/code><\/pre>\n<p>从「存在哪里」「能不能改」「<code>sizeof<\/code> 和 <code>strlen<\/code> 各是多少」三方面对比。<\/p>", "answer_html": "<table><thead><tr><th><\/th><th><code>char s1[] = \"abc\"<\/code><\/th><th><code>char *s2 = \"abc\"<\/code><\/th><\/tr><\/thead><tbody><tr><td>本质<\/td><td>数组，4 个 char 的拷贝（含结尾 <code>'\\0'<\/code>）<\/td><td>指针，只存一个地址<\/td><\/tr><tr><td>存在哪<\/td><td>栈（局部变量）或 .data（全局）<\/td><td>指针本身在栈；<code>\"abc\"<\/code> 在<strong>只读段 .rodata<\/strong><\/td><\/tr><tr><td>能否改<\/td><td>能，<code>s1[0] = 'X'<\/code> 合法<\/td><td>不能，<code>s2[0] = 'X'<\/code> 是 <strong>UB<\/strong>（写只读页，多数平台段错误）<\/td><\/tr><tr><td><code>sizeof<\/code><\/td><td>4（整个数组，含 <code>'\\0'<\/code>）<\/td><td>8（指针大小）<\/td><\/tr><tr><td><code>strlen<\/code><\/td><td>3<\/td><td>3<\/td><\/tr><\/tbody><\/table>\n<p><strong>要点<\/strong>：<code>sizeof<\/code> 算的是<strong>对象占多少字节<\/strong>（数组把 <code>'\\0'<\/code> 也算上），<code>strlen<\/code> 数的是<strong>到 <code>'\\0'<\/code> 之前的字符数<\/strong>。<br>一个是编译期常量，一个是运行期数出来的。<\/p>\n<p><strong>为什么 <code>char *s2<\/code> 会被警告<\/strong>：C++ 里直接禁止；C 里允许但有隐患，<code>-Wwrite-strings<\/code> 会提示。<br>安全的写法是 <code>const char *s2 = \"abc\";<\/code>——既然不许改，就用 const 明示。<\/p>\n<p><strong>要点（自评用）<\/strong><\/p>\n<ol>\n<li>说出字面量在只读段、拷贝才可写。<\/li>\n<li><code>sizeof<\/code> 分别是 4 和 8，<code>strlen<\/code> 都是 3。<\/li>\n<li>知道改成 <code>const char *<\/code> 才是正确姿势。<\/li>\n<\/ol>"}, {"id": "P13", "topic": "3.2 指针作为函数参数传入", "outline_ref": "3.2", "qtype": "short", "stage_label": "概念", "difficulty": 2, "plain": "这道题很多人答错： C 语言「只有值传递」，可为什么 void f(int p) { p = 5; } 能改到调用者的变量？ 既然指针也是值传递，为什么它就不一样？", "stem_html": "<p><strong>这道题很多人答错：<\/strong><\/p>\n<p>C 语言「只有值传递」，可为什么 <code>void f(int *p) { *p = 5; }<\/code> 能改到调用者的变量？<br>既然指针也是值传递，为什么它就不一样？<\/p>", "answer_html": "<p><strong>因为「被复制的东西」不同。<\/strong><\/p>\n<ul>\n<li>传 <code>int<\/code> 时，复制的是<strong>值<\/strong>（比如 10）。函数里改副本，原件不动。<\/li>\n<li>传 <code>int *<\/code> 时，复制的也是值——但这个值是<strong>地址<\/strong>。<\/li>\n<\/ul>\n<p>  函数里拿到的是同一个地址的副本，顺着这个地址去写，写到的就是<strong>同一个对象<\/strong>。<\/p>\n<pre><code>调用者:  a = 10           地址 0x1000\n实参:    &amp;a = 0x1000\n形参:    p  = 0x1000      ← p 是副本，但副本里装的地址和 &amp;a 一样\n函数里:  *p = 5           ← 顺着 0x1000 写 → 改的是 a<\/code><\/pre>\n<p><strong>反过来验证<\/strong>：如果函数里写 <code>p = &amp;other;<\/code>，改的只是 <code>p<\/code> 这个副本，调用者的 <code>a<\/code> 一点不受影响。<br>这正好说明「指针本身也是值传递」。<\/p>\n<p><strong>结论<\/strong>：C 里没有引用传递，所谓\"传址\"只是<strong>传了一个地址的值<\/strong>。<br>想修改调用者的变量，必须传「存着那个变量地址的指针」；想修改调用者的指针，就得传二级指针。<\/p>\n<p><strong>要点（自评用）<\/strong><\/p>\n<ol>\n<li>明确「传的是地址的副本」。<\/li>\n<li>用 <code>p = &amp;other<\/code> 不影响调用者来反证。<\/li>\n<li>说出「想改指针本身要传二级指针」。<\/li>\n<\/ol>"}, {"id": "P14", "topic": "3.2 指针作为函数参数传入", "outline_ref": "3.2", "qtype": "code_read", "stage_label": "代码用法", "difficulty": 1, "plain": "输出什么？", "stem_html": "<p><strong>输出什么？<\/strong><\/p>\n<pre><code class=\"lang-c\">#include &lt;stdio.h&gt;\n\nvoid swap_bad(int a, int b)\n{\n    int t = a;\n    a = b;\n    b = t;\n}\n\nvoid swap_ok(int *a, int *b)\n{\n    int t = *a;\n    *a = *b;\n    *b = t;\n}\n\nint main(void)\n{\n    int x = 1, y = 2;\n    swap_bad(x, y);\n    printf(&quot;%d %d\\n&quot;, x, y);     /* ① */\n\n    swap_ok(&amp;x, &amp;y);\n    printf(&quot;%d %d\\n&quot;, x, y);     /* ② */\n    return 0;\n}<\/code><\/pre>", "answer_html": "<pre><code>① 1 2\n② 2 1<\/code><\/pre>\n<ul>\n<li><strong>① <code>swap_bad<\/code> 换的是两个副本<\/strong>，函数一返回副本就没了，<code>x<\/code>、<code>y<\/code> 从没被碰过。<\/li>\n<li><strong>② 传进去的是地址<\/strong>，<code>*a<\/code> 和 <code>*b<\/code> 就是 <code>x<\/code> 和 <code>y<\/code> 本身，交换的是真东西。<\/li>\n<\/ul>\n<p><strong>顺带一个坑<\/strong>：<code>swap_ok<\/code> 里如果想省事写成<\/p>\n<pre><code class=\"lang-c\">void swap_ok(int *a, int *b)\n{\n    int *t = a; a = b; b = t;   /* 错！只换了副本地址 */\n}<\/code><\/pre>\n<p>外面一点变化都没有——这又是「指针本身也是值传递」。要换指针本身，得传 <code>int **<\/code>。<\/p>\n<p><strong>要点（自评用）<\/strong><\/p>\n<ol>\n<li>两个输出都对。<\/li>\n<li>能一句话说清「换的是副本 / 换的是本体」。<\/li>\n<li>看出 <code>int *t = a<\/code> 那种错误写法改不到外部。<\/li>\n<\/ol>"}, {"id": "P15", "topic": "3.3 指针与数组、指针算术", "outline_ref": "3.3", "qtype": "code_read", "stage_label": "代码用法", "difficulty": 3, "plain": "写出三个输出，并说明 p++ 到底做了什么。 再答一句： p++ 、 ( p)++ 、 ++ p 三者分别是什么？", "stem_html": "<p><strong>写出三个输出，并说明 <code>*p++<\/code> 到底做了什么。<\/strong><\/p>\n<pre><code class=\"lang-c\">#include &lt;stdio.h&gt;\n#include &lt;stddef.h&gt;\n\nstruct point { int x, y; };\n\nint main(void)\n{\n    int a[5] = {1, 2, 3, 4, 5};\n    struct point pts[3] = {{1, 2}, {3, 4}, {5, 6}};\n\n    int *p = a;\n    int sum = 0;\n    while (p &lt; a + 5)\n        sum += *p++;              /* ① */\n    printf(&quot;%d\\n&quot;, sum);\n\n    struct point *q = pts;\n    int total = 0;\n    for (int i = 0; i &lt; 3; i++)\n        total += (q + i)-&gt;x + (q + i)-&gt;y;\n    printf(&quot;%d\\n&quot;, total);        /* ② */\n\n    printf(&quot;%td\\n&quot;, &amp;pts[2] - &amp;pts[0]);   /* ③ */\n    return 0;\n}<\/code><\/pre>\n<p>再答一句：<code>*p++<\/code>、<code>(*p)++<\/code>、<code>++*p<\/code> 三者分别是什么？<\/p>", "answer_html": "<pre><code>① 15\n② 21\n③ 2<\/code><\/pre>\n<ul>\n<li><strong>①<\/strong> 依次累加 1+2+3+4+5 = 15。循环靠 <code>p &lt; a + 5<\/code> 收尾——注意 <code>a + 5<\/code> 就是「末尾后一格」，<\/li>\n<\/ul>\n<p>  可以形成、只用来比较，不解引用。<\/p>\n<ul>\n<li><strong>②<\/strong> <code>(q + i)-&gt;x<\/code> 等价于 <code>q[i].x<\/code>。total = (1+2)+(3+4)+(5+6) = 21。<\/li>\n<li><strong>③<\/strong> 同类型指针相减得元素个数：2。<\/li>\n<\/ul>\n<p><strong><code>*p++<\/code> 到底是什么<\/strong><\/p>\n<p><code>++<\/code> 的优先级高于 <code>*<\/code>，但这里是后缀 <code>++<\/code>，规则是「先用后加」：<\/p>\n<table><thead><tr><th>写法<\/th><th>含义<\/th><th>效果<\/th><\/tr><\/thead><tbody><tr><td><code>*p++<\/code><\/td><td><code>*(p++)<\/code><\/td><td>取 <code>*p<\/code>，然后 <code>p<\/code> 前进一格。<strong>最常见<\/strong>，遍历用<\/td><\/tr><tr><td><code>(*p)++<\/code><\/td><td>取 <code>*p<\/code> 然后把它加 1<\/td><td>改的是<strong>数据<\/strong>，<code>p<\/code> 不动<\/td><\/tr><tr><td><code>++*p<\/code> / <code>*++p<\/code><\/td><td><code>++(*p)<\/code> / <code>*(++p)<\/code><\/td><td>前者先加数据再取；后者 p 先走再取<\/td><\/tr><\/tbody><\/table>\n<p><strong>为什么 <code>while (p &lt; a + 5) sum += *p++;<\/code> 能工作<\/strong>：每次循环取当前值、再前移，<br>循环结束时 <code>p<\/code> 正好停在 <code>a + 5<\/code>。这是 C 里最地道的数组遍历写法。<\/p>\n<p><strong>结构体数组的两种遍历<\/strong>：<br><code>(q + i)-&gt;x<\/code> 和 <code>q[i].x<\/code> 完全等价——因为 <code>q[i]<\/code> 本身被定义成 <code>*(q + i)<\/code>。<br>哪种都行，选可读的。<\/p>\n<p><strong>要点（自评用）<\/strong><\/p>\n<ol>\n<li>三个输出对（15 / 21 / 2）。<\/li>\n<li>说清 <code>*p++<\/code> 是「先取值再移指针」，不是「先移再取」。<\/li>\n<li>能说出 <code>(q+i)-&gt;x<\/code> 与 <code>q[i].x<\/code> 等价，并知道原因。<\/li>\n<\/ol>"}, {"id": "P16", "topic": "3.4 多级指针", "outline_ref": "3.4", "qtype": "short", "stage_label": "概念", "difficulty": 3, "plain": "两个问题： 1. void change(char s) { s = \"new\"; } 为什么改不到外面的指针？要怎么改？ 2. int main(int argc, char a…", "stem_html": "<p><strong>两个问题：<\/strong><\/p>\n<ol>\n<li><code>void change(char *s) { s = \"new\"; }<\/code> 为什么改不到外面的指针？要怎么改？<\/li>\n<li><code>int main(int argc, char *argv[])<\/code> 里的 <code>argv<\/code> 到底是什么类型？为什么说它「就是二级指针」？<\/li>\n<\/ol>", "answer_html": "<p><strong>1. 因为形参 <code>s<\/code> 是副本。<\/strong><br><code>s<\/code> 这个变量自己也是值传递，函数里让它指向 <code>\"new\"<\/code>，只是改了副本里的地址。<\/p>\n<p>要改调用者的指针，就得把「那个指针的地址」传进来：<\/p>\n<pre><code class=\"lang-c\">void change(char **ps)\n{\n    *ps = &quot;new&quot;;        /* 顺着地址，改到外面的指针本体 */\n}\n\nchar *p = &quot;old&quot;;\nchange(&amp;p);             /* p 现在指向 &quot;new&quot; */<\/code><\/pre>\n<p><strong>记法<\/strong>：想改 <code>int<\/code> → 传 <code>int *<\/code>；想改 <code>char *<\/code> → 传 <code>char **<\/code>；想改 <code>char **<\/code> → 传 <code>char ***<\/code>。<br>每升一级，就多一层 <code>*<\/code>。<\/p>\n<p><strong>2. <code>char *argv[]<\/code> 与 <code>char **argv<\/code> 完全等价。<\/strong><br><code>argv<\/code> 是一个数组，每个元素是 <code>char *<\/code>（一个字符串），数组名退化成「指向首个元素的指针」，<br>所以它的类型是 <code>char **<\/code>。<\/p>\n<pre><code>argv[0]      → char *     &quot;./a.out&quot;\nargv[1]      → char *     &quot;file.txt&quot;\nargv[2]      → char *     NULL   （标准保证 argv[argc] 是 NULL）\n*argv        → char *     argv[0]\n**argv       → char       &#x27;.&#x27;<\/code><\/pre>\n<p><strong>为什么用二级指针<\/strong>：它既能表示「一堆字符串」，也能表示「一个长度未知、以 NULL 结尾的数组」。<br>遍历时用 <code>while (*argv)<\/code> 或 <code>for (i = 0; i &lt; argc; i++)<\/code> 都行。<\/p>\n<p><strong>要点（自评用）<\/strong><\/p>\n<ol>\n<li>说出「形参是副本」这个根因。<\/li>\n<li>给出 <code>char **<\/code> 的正确写法并能解释 <code>*ps = ...<\/code>。<\/li>\n<li><code>argv[i]<\/code> 是字符串、<code>*argv<\/code> 是 argv[0]、<code>**argv<\/code> 是首字符，三层都说对。<\/li>\n<\/ol>"}, {"id": "P17", "topic": "3.5 void* 指针", "outline_ref": "3.5", "qtype": "short", "stage_label": "概念", "difficulty": 2, "plain": "void p; 为什么既不能直接 p ，也不能 p + 1 ？那 void 到底有什么用？", "stem_html": "<p><code>void *p;<\/code> 为什么既不能直接 <code>*p<\/code>，也不能 <code>p + 1<\/code>？那 <code>void *<\/code> 到底有什么用？<\/p>", "answer_html": "<p><strong>根因只有一个：<code>void<\/code> 是「没有大小」的类型。<\/strong><\/p>\n<table><thead><tr><th>操作<\/th><th>为什么不行<\/th><\/tr><\/thead><tbody><tr><td><code>*p<\/code><\/td><td>解引用要知道「读几个字节、怎么解释这些位」。<code>char<\/code> 是 1，<code>int<\/code> 是 4，<code>void<\/code> 没有这个数<\/td><\/tr><tr><td><code>p + 1<\/code><\/td><td>加法要乘上元素大小，<code>void<\/code> 大小不确定，算不出偏移<\/td><\/tr><\/tbody><\/table>\n<p><strong>正确做法<\/strong>：先强转成具体类型<\/p>\n<pre><code class=\"lang-c\">void *p = &amp;x;\n*(int *)p = 42;          /* 先告诉编译器&quot;这是 int&quot; */\nint *q = (int *)p;\nq++;<\/code><\/pre>\n<p><strong>那它有什么用<\/strong>：做「不关心具体类型」的通用接口。<\/p>\n<pre><code class=\"lang-c\">void *memcpy(void *dst, const void *src, size_t n);\nvoid  qsort(void *base, size_t nmemb, size_t size,\n            int (*cmp)(const void *, const void *));<\/code><\/pre>\n<p>调用方传 <code>int *<\/code>、<code>struct *<\/code> 都行，函数内部按字节处理，最后再转回来。<\/p>\n<p><strong>几个追问点<\/strong><\/p>\n<ul>\n<li><code>void *<\/code> 与任意对象指针<strong>自动互转<\/strong>，<code>int *p = malloc(...)<\/code> 不用强转（C++ 需要）。<\/li>\n<li>GCC 允许 <code>void *<\/code> 做算术（按 1 字节算），那是扩展，别依赖。<\/li>\n<li>函数指针转 <code>void *<\/code> 不是标准保证的（<code>dlsym<\/code> 靠 POSIX 兜底）。<\/li>\n<\/ul>\n<p><strong>要点（自评用）<\/strong><\/p>\n<ol>\n<li>指出「void 没有大小」是解引用和算术都不行的同一原因。<\/li>\n<li>给出强转写法。<\/li>\n<li>举出 <code>memcpy<\/code> / <code>qsort<\/code> 这类例子。<\/li>\n<\/ol>"}, {"id": "P18", "topic": "3.6 const 与指针", "outline_ref": "3.6", "qtype": "short", "stage_label": "概念", "difficulty": 2, "plain": "const int p 、 int const p 、 const int const p 三者分别锁住了什么？怎么一眼看出来？函数参数里加 const 有什么实际价值？", "stem_html": "<p><code>const int *p<\/code>、<code>int *const p<\/code>、<code>const int *const p<\/code> 三者分别锁住了什么？怎么一眼看出来？函数参数里加 const 有什么实际价值？<\/p>", "answer_html": "<p><strong>判断口诀<\/strong>：看 <code>const<\/code> 在 <code>*<\/code> 的哪一边——紧挨着谁就锁谁。<\/p>\n<table><thead><tr><th>写法<\/th><th>const 在<\/th><th>锁住<\/th><th>还能做<\/th><\/tr><\/thead><tbody><tr><td><code>const int *p<\/code>（= <code>int const *p<\/code>）<\/td><td><code>*<\/code> 左边<\/td><td><code>*p<\/code><\/td><td><code>p = &amp;other<\/code><\/td><\/tr><tr><td><code>int *const p<\/code><\/td><td><code>*<\/code> 右边<\/td><td><code>p<\/code> 本身（必须初始化）<\/td><td><code>*p = 5<\/code><\/td><\/tr><tr><td><code>const int *const p<\/code><\/td><td>两边都有<\/td><td>两个都锁<\/td><td>无<\/td><\/tr><\/tbody><\/table>\n<p>换成「从变量名往左读」也一样：<code>p<\/code> 是「指向 const int 的指针」/「指向 int 的 const 指针」。<\/p>\n<p><strong>函数参数里加 const 的价值<\/strong><\/p>\n<pre><code class=\"lang-c\">void send(const uint8_t *buf, size_t len);<\/code><\/pre>\n<ol>\n<li><strong>可读的契约<\/strong>：告诉调用者「我不改你的缓冲区」。<\/li>\n<li><strong>让只读数据能传进来<\/strong>：<code>const<\/code> 对象、字符串字面量只能传给 <code>const T *<\/code> 形参，否则编译器告警。<\/li>\n<li><strong>把 bug 提到编译期<\/strong>：函数里想 <code>buf[0] = 0;<\/code> 直接报错，而不是运行到这行才发现。<\/li>\n<\/ol>\n<p><strong>注意<\/strong>：const 只是编译期承诺，<code>(char *)<\/code> 强转能绕过去——但只有<strong>原本就可写<\/strong>的对象，绕过去才安全；<br>改字符串字面量是 UB。<\/p>\n<p><strong>要点（自评用）<\/strong><\/p>\n<ol>\n<li>三种组合权限表 + 口诀都对。<\/li>\n<li>提到 const 指针必须初始化。<\/li>\n<li>说出接口契约 / 只读数据可传入 / 编译期拦截 三点中至少两点。<\/li>\n<\/ol>"}, {"id": "P19", "topic": "3.6 const 与指针", "outline_ref": "3.6", "qtype": "code_read", "stage_label": "常见错误", "difficulty": 3, "plain": "下面三条初始化之后，四条赋值语句各自的结果是什么？分成「编译期报错 / 运行期出错 / 正常」三类。", "stem_html": "<p>下面三条初始化之后，四条赋值语句各自的结果是什么？分成「编译期报错 / 运行期出错 / 正常」三类。<\/p>\n<pre><code class=\"lang-c\">const char *s1 = &quot;abc&quot;;\nchar *const s2 = &quot;abc&quot;;\nchar buf[] = &quot;abc&quot;;\n\n*s1   = &#x27;X&#x27;;    /* ① */\ns1    = buf;    /* ② */\ns2[0] = &#x27;X&#x27;;    /* ③ */\nbuf[0] = &#x27;X&#x27;;   /* ④ */<\/code><\/pre>", "answer_html": "<table><thead><tr><th>语句<\/th><th>结果<\/th><th>原因<\/th><\/tr><\/thead><tbody><tr><td>①<\/td><td><strong>编译期报错<\/strong><\/td><td><code>*s1<\/code> 是 <code>const char<\/code>，只读<\/td><\/tr><tr><td>②<\/td><td><strong>正常<\/strong><\/td><td><code>s1<\/code> 本身不是 const，可以改指向；之后指向可写的 <code>buf<\/code><\/td><\/tr><tr><td>③<\/td><td><strong>编译通过，运行期 UB（多数平台段错误）<\/strong><\/td><td><code>s2<\/code> 是 const 指针，但<strong>它指向的 <code>\"abc\"<\/code> 在只读段<\/strong><\/td><\/tr><tr><td>④<\/td><td><strong>正常<\/strong><\/td><td><code>buf<\/code> 是栈上的可写数组<\/td><\/tr><\/tbody><\/table>\n<p><strong>这题真正要记住的<\/strong>：<br><code>const char *s1<\/code> 锁的是<strong>数据<\/strong>，<code>char *const s2<\/code> 锁的是<strong>指针<\/strong>。<br>所以 ① 是编译错误（类型系统管得着），③ 是运行期爆炸（类型系统管不着，因为 <code>s2<\/code> 指向的 <code>char<\/code> 名义上可写）。<\/p>\n<p><strong>一句话<\/strong>：<code>const<\/code> 防的是「你手滑」，防不了「指针指向的那块内存本来就只读」。<\/p>\n<p><strong>要点（自评用）<\/strong><\/p>\n<ol>\n<li>四条结论全对。<\/li>\n<li>说清 ③ 为什么编译能过。<\/li>\n<li>指出字符串字面量在只读段。<\/li>\n<\/ol>"}, {"id": "P20", "topic": "3.7 函数指针", "outline_ref": "3.7", "qtype": "short", "stage_label": "概念", "difficulty": 3, "plain": "1. int ( fp)(int, int); 和 int fp(int, int); 有什么区别？为什么括号不能省？ 2. fp(1, 2) 和 ( fp)(1, 2) 哪个对？…", "stem_html": "<ol>\n<li><code>int (*fp)(int, int);<\/code> 和 <code>int *fp(int, int);<\/code> 有什么区别？为什么括号不能省？<\/li>\n<li><code>fp(1, 2)<\/code> 和 <code>(*fp)(1, 2)<\/code> 哪个对？<\/li>\n<li>函数指针数组一般拿来干什么？<\/li>\n<\/ol>", "answer_html": "<p><strong>1. 括号决定谁先跟 <code>*<\/code> 结合。<\/strong><\/p>\n<table><thead><tr><th>声明<\/th><th>读法<\/th><\/tr><\/thead><tbody><tr><td><code>int (*fp)(int, int)<\/code><\/td><td><code>fp<\/code> 是指针，指向「参数两个 int、返回 int 的函数」<\/td><\/tr><tr><td><code>int *fp(int, int)<\/code><\/td><td><code>fp<\/code> 是函数，参数两个 int，返回 <code>int *<\/code><\/td><\/tr><\/tbody><\/table>\n<p>去掉括号，<code>*<\/code> 就先和返回值结合，意思完全变了。<strong>记法<\/strong>：看到 <code>(*名字)<\/code> 就知道是指针。<\/p>\n<p><strong>2. 两种都对。<\/strong> <code>fp(1, 2)<\/code> 常用，<code>(*fp)(1, 2)<\/code> 更显式，C 标准两者等价。<br>（<code>fp = func;<\/code> 与 <code>fp = &amp;func;<\/code> 也等价。）<\/p>\n<pre><code class=\"lang-c\">int add(int a, int b) { return a + b; }\n\nint (*fp)(int, int) = add;\nint r1 = fp(1, 2);      /* 3 */\nint r2 = (*fp)(1, 2);   /* 3 */<\/code><\/pre>\n<p><strong>3. 函数指针数组 = 「按编号选函数」的调度表。<\/strong><\/p>\n<pre><code class=\"lang-c\">typedef int (*binop_t)(int, int);\n\nstatic binop_t ops[] = { add, sub, mul, div_i };\n...\nint r = ops[opcode](x, y);<\/code><\/pre>\n<p>典型场景：命令解析、状态机、中断向量表、驱动的操作集合——内核的 <code>file_operations<\/code><br>本质就是「结构体里装一堆函数指针」。相比几十个 <code>if/else<\/code>，查表是 O(1)，加新命令也只改表。<\/p>\n<p><strong>要点（自评用）<\/strong><\/p>\n<ol>\n<li>两种声明区别说对，且知道是括号优先级问题。<\/li>\n<li>说 <code>fp(1,2)<\/code> 与 <code>(*fp)(1,2)<\/code> 等价。<\/li>\n<li>说出「查表/状态机/命令分发」，最好提到 <code>file_operations<\/code>。<\/li>\n<\/ol>"}, {"id": "P21", "topic": "3.7 函数指针", "outline_ref": "3.7", "qtype": "code_read", "stage_label": "代码用法", "difficulty": 3, "plain": "输出什么？ 再问： int ( ops[])(int, int) 这个声明该怎么读？为什么数组的方括号写在中间？", "stem_html": "<p><strong>输出什么？<\/strong><\/p>\n<pre><code class=\"lang-c\">#include &lt;stdio.h&gt;\n\nint add(int a, int b) { return a + b; }\nint sub(int a, int b) { return a - b; }\nint mul(int a, int b) { return a * b; }\n\nint (*ops[])(int, int) = { add, sub, mul };\n\nint apply(int (*f)(int, int), int a, int b)\n{\n    return f(a, b);\n}\n\nint main(void)\n{\n    printf(&quot;%d\\n&quot;, ops[2](3, 4));            /* ① */\n    printf(&quot;%d\\n&quot;, apply(ops[1], 10, 4));    /* ② */\n    printf(&quot;%d\\n&quot;, (*ops[0])(2, 3));         /* ③ */\n    return 0;\n}<\/code><\/pre>\n<p>再问：<code>int (*ops[])(int, int)<\/code> 这个声明该怎么读？为什么数组的方括号写在中间？<\/p>", "answer_html": "<pre><code>① 12      （mul(3,4)）\n② 6       （sub(10,4)）\n③ 5       （add(2,3)）<\/code><\/pre>\n<p><strong>读 <code>int (*ops[])(int, int);<\/code><\/strong>（右左法则）：<br><code>ops<\/code> → 向右遇到 <code>[]<\/code> → 是数组 → 向左遇到 <code>*<\/code> → 元素是指针 →<br>跳出括号向右遇到 <code>(int,int)<\/code> → 指向函数，参数两个 int → 向左 <code>int<\/code> → 返回 int。<\/p>\n<p><strong>「ops 是一个数组，每个元素是『指向参数 (int,int)、返回 int 的函数』的指针」。<\/strong><\/p>\n<p><strong>为什么方括号写在中间<\/strong>：数组的「元素类型」本身就是 <code>int (*)(int,int)<\/code> 这个函数指针类型，<br>所以必须让 <code>ops<\/code> 先和 <code>[]<\/code> 结合（方括号紧跟变量名），再用括号把 <code>*<\/code> 钉住。<br>实际工程里都用 typedef 化解：<\/p>\n<pre><code class=\"lang-c\">typedef int (*op_t)(int, int);\nop_t ops[] = { add, sub, mul };<\/code><\/pre>\n<p><strong><code>apply(ops[1], 10, 4)<\/code> 是回调<\/strong>：<code>apply<\/code> 不知道自己会执行什么，<br>调用者把函数当参数传进来——这就是回调的本质，也是内核里最常见的写法。<\/p>\n<p><strong>要点（自评用）<\/strong><\/p>\n<ol>\n<li>三个输出全对。<\/li>\n<li>能把声明读成「数组，元素是函数指针」。<\/li>\n<li>说清 <code>apply<\/code> 是回调、函数可以作为参数传。<\/li>\n<\/ol>"}, {"id": "P22", "topic": "3.8 指针与结构体", "outline_ref": "3.8", "qtype": "short", "stage_label": "概念", "difficulty": 2, "plain": "三个问题： 1. p id 和 ( p).id 是什么关系？为什么需要 ？ 2. 结构体里能不能这样写 struct node { int id; struct node chil…", "stem_html": "<p><strong>三个问题：<\/strong><\/p>\n<ol>\n<li><code>p-&gt;id<\/code> 和 <code>(*p).id<\/code> 是什么关系？为什么需要 <code>-&gt;<\/code>？<\/li>\n<li>结构体里能不能这样写 <code>struct node { int id; struct node child; };<\/code>？<\/li>\n<li>结构体作函数参数，传值还是传指针？<\/li>\n<\/ol>", "answer_html": "<p><strong>1. <code>p-&gt;id<\/code> 就是 <code>(*p).id<\/code> 的语法糖。<\/strong><br>因为 <code>*p<\/code> 外面必须加括号（<code>.<\/code> 的优先级比 <code>*<\/code> 高），写起来又丑又容易漏，<br>C 就提供了 <code>-&gt;<\/code>：左边必须是指针，右边是成员名。<\/p>\n<p><strong>2. 不能。<\/strong> <code>struct node<\/code> 里再放一个完整的 <code>struct node<\/code>，大小永远算不出来（无限递归），<br>编译器会报 <code>incomplete type<\/code>。正确写法是放<strong>指针<\/strong>：<\/p>\n<pre><code class=\"lang-c\">struct node {\n    int id;\n    struct node *next;    /* 指针大小固定，类型不完整也没关系 */\n};<\/code><\/pre>\n<p>这就是链表结点的基本形态。<\/p>\n<p><strong>3. 看大小和目的：<\/strong><\/p>\n<table><thead><tr><th><\/th><th>传值<\/th><th>传指针<\/th><\/tr><\/thead><tbody><tr><td>开销<\/td><td>拷贝整个结构体（大结构体很贵）<\/td><td>只拷 8 字节地址<\/td><\/tr><tr><td>能否改原对象<\/td><td>不能<\/td><td>能<\/td><\/tr><tr><td>原型<\/td><td><code>void f(struct node n)<\/code><\/td><td><code>void f(struct node *n)<\/code><\/td><\/tr><\/tbody><\/table>\n<p>经验规则：<strong>超过 16 字节、或者函数要修改它 → 传指针<\/strong>；只读的小结构体可以传值。<br>只读的大结构体用 <code>const struct node *<\/code>，既省拷贝又表明不改。<\/p>\n<p><strong>要点（自评用）<\/strong><\/p>\n<ol>\n<li>说出 <code>-&gt;<\/code> 是 <code>(*p).<\/code> 的简写，以及为什么需要它（优先级）。<\/li>\n<li>解释自引用必须用指针（大小无法确定）。<\/li>\n<li>传值/传指针的取舍说得出（开销 + 能否修改）。<\/li>\n<\/ol>"}, {"id": "P23", "topic": "3.9 指针直接操作硬件", "outline_ref": "3.9", "qtype": "short", "stage_label": "内核片段", "difficulty": 3, "plain": "这行代码里的每一个部分分别在做什么？ 为什么是 volatile ？为什么要把地址强转成指针？为什么用 uint32 t 而不是 int ？能不能拆成两步写？", "stem_html": "<p><strong>这行代码里的每一个部分分别在做什么？<\/strong><\/p>\n<pre><code class=\"lang-c\">*(volatile uint32_t *)0x40000000 = 0x1;<\/code><\/pre>\n<p>为什么是 <code>volatile<\/code>？为什么要把地址强转成指针？为什么用 <code>uint32_t<\/code> 而不是 <code>int<\/code>？能不能拆成两步写？<\/p>", "answer_html": "<p><strong>倒着读<\/strong>：取地址 <code>0x40000000<\/code> → 强转成「指向 <code>volatile uint32_t<\/code> 的指针」→ 解引用并赋值。<\/p>\n<table><thead><tr><th>部分<\/th><th>作用<\/th><th>去掉会怎样<\/th><\/tr><\/thead><tbody><tr><td><code>0x40000000<\/code><\/td><td>寄存器地址（芯片手册给的）<\/td><td>—<\/td><\/tr><tr><td><code>(volatile uint32_t *)<\/code><\/td><td>把整数<strong>变成指针<\/strong>，并声明「这块内存会自己变」<\/td><td>不转就是整数不是地址，编译报错<\/td><\/tr><tr><td><code>volatile<\/code><\/td><td>禁止编译器把这次读写<strong>优化掉或缓存到寄存器<\/strong><\/td><td>开优化后，编译器发现「写完没人读」，可能直接删掉这条写<\/td><\/tr><tr><td><code>uint32_t<\/code><\/td><td>明确 4 字节宽度、无符号<\/td><td>用 <code>int<\/code> 宽度不定（16 位 MCU 上 int 是 2 字节），写到寄存器上就错位；符号位还会干扰移位<\/td><\/tr><\/tbody><\/table>\n<p><strong>能不能拆两步<\/strong>：可以，而且更推荐。<\/p>\n<pre><code class=\"lang-c\">volatile uint32_t *reg = (volatile uint32_t *)0x40000000;\n*reg = 0x1;<\/code><\/pre>\n<p>注意：<strong>需要 volatile 的是「它指向的内存」，不是指针变量本身<\/strong>。<br>只有当这个指针变量的值也会被别的东西改（比如指向不同寄存器）时，才写 <code>volatile uint32_t *volatile reg<\/code>。<\/p>\n<p><strong>为什么循环里必须 volatile<\/strong><\/p>\n<pre><code class=\"lang-c\">while (*(volatile uint32_t *)0x40000000 == 0)\n    ;        /* 等硬件把标志位置 1 */<\/code><\/pre>\n<p>没有 volatile，编译器认为内存不会自己变，可能只读一次就判定循环不成立——这是驱动里最经典的坑。<\/p>\n<p><strong>要点（自评用）<\/strong><\/p>\n<ol>\n<li>三部分作用都说对。<\/li>\n<li>指出 volatile 防的是「编译器优化」，不是「多线程安全」。<\/li>\n<li>提到用定宽类型而不是 <code>int<\/code>。<\/li>\n<\/ol>"}, {"id": "P24", "topic": "4.1 malloc / calloc / realloc / free", "outline_ref": "4.1", "qtype": "short", "stage_label": "概念", "difficulty": 2, "plain": "malloc / calloc / realloc / free 四个函数分别解决什么问题？各自的原型和返回值怎么用？", "stem_html": "<p><code>malloc<\/code> / <code>calloc<\/code> / <code>realloc<\/code> / <code>free<\/code> 四个函数分别解决什么问题？各自的原型和返回值怎么用？<\/p>", "answer_html": "<table><thead><tr><th>函数<\/th><th>原型<\/th><th>干什么<\/th><th>注意<\/th><\/tr><\/thead><tbody><tr><td><code>malloc<\/code><\/td><td><code>void *malloc(size_t n)<\/code><\/td><td>分配 <code>n<\/code> 字节，<strong>不初始化<\/strong><\/td><td>内容是垃圾，别直接读<\/td><\/tr><tr><td><code>calloc<\/code><\/td><td><code>void *calloc(size_t cnt, size_t sz)<\/code><\/td><td>分配 <code>cnt × sz<\/code> 字节，<strong>清零<\/strong><\/td><td>适合数组；参数乘法内部做了溢出检查<\/td><\/tr><tr><td><code>realloc<\/code><\/td><td><code>void *realloc(void *p, size_t n)<\/code><\/td><td>把已分配的块调整到 <code>n<\/code> 字节<\/td><td><strong>可能搬家<\/strong>，失败返回 NULL 且原块仍有效<\/td><\/tr><tr><td><code>free<\/code><\/td><td><code>void free(void *p)<\/code><\/td><td>归还内存<\/td><td>只能 free 原始地址；<code>free(NULL)<\/code> 安全<\/td><\/tr><\/tbody><\/table>\n<p><strong>返回值判 NULL<\/strong>（这一步经常被忘）：<\/p>\n<pre><code class=\"lang-c\">int *a = malloc(n * sizeof *a);\nif (!a) {\n    /* 分配失败，别继续用 */\n    return -ENOMEM;\n}<\/code><\/pre>\n<p><strong><code>realloc<\/code> 的正确写法<\/strong>（别把原指针冲掉）：<\/p>\n<pre><code class=\"lang-c\">int *tmp = realloc(a, new_n * sizeof *a);\nif (!tmp) {\n    /* 失败：a 仍然有效，可以继续用或稍后再试 */\n    return -1;\n}\na = tmp;        /* 成功才覆盖 */<\/code><\/pre>\n<p>如果写成 <code>a = realloc(a, ...)<\/code>，一旦失败 <code>a<\/code> 变成 NULL，原来那块内存就<strong>再也 free 不掉<\/strong>了 —— 泄漏。<\/p>\n<p><strong>要点（自评用）<\/strong><\/p>\n<ol>\n<li>四个函数的区别说对（尤其 calloc 清零、realloc 可能搬家）。<\/li>\n<li>知道要判 NULL，并给出正确写法。<\/li>\n<li>指出 <code>realloc<\/code> 必须用临时变量接。<\/li>\n<\/ol>"}, {"id": "P25", "topic": "4.1 malloc / calloc / realloc / free", "outline_ref": "4.1", "qtype": "code_read", "stage_label": "常见错误", "difficulty": 3, "plain": "下面 4 处分别有什么问题？", "stem_html": "<p>下面 4 处分别有什么问题？<\/p>\n<pre><code class=\"lang-c\">int *p = malloc(10 * sizeof(int));\nif (!p) return -1;\n\nfor (int i = 0; i &lt; 10; i++)\n    p[i] = i;\n\nfree(p + 1);              /* ① */\nfree(p);                  /* ② */\nfree(p);                  /* ③ */\nprintf(&quot;%d\\n&quot;, p[0]);    /* ④ */<\/code><\/pre>", "answer_html": "<table><thead><tr><th>位置<\/th><th>结论<\/th><th>原因<\/th><\/tr><\/thead><tbody><tr><td>①<\/td><td><strong>UB<\/strong><\/td><td><code>free<\/code> 只能收 <code>malloc<\/code> 返回的<strong>原始地址<\/strong>。<code>p + 1<\/code> 不是块首，堆管理器会直接 <code>abort<\/code>（glibc 常见报错：<code>free(): invalid pointer<\/code>）<\/td><\/tr><tr><td>②<\/td><td>正确<\/td><td>这才是那块内存的首地址<\/td><\/tr><tr><td>③<\/td><td><strong>UB（double free）<\/strong><\/td><td>同一块内存释放两次，堆的链表被写坏；glibc 常报 <code>double free or corruption<\/code><\/td><\/tr><tr><td>④<\/td><td><strong>UB（use after free）<\/strong><\/td><td>内存已经还回去了，<code>p<\/code> 是<strong>悬垂指针<\/strong>，<code>p[0]<\/code> 可能拿到旧值，也可能已经被别人用了<\/td><\/tr><\/tbody><\/table>\n<p><strong>三条能背下来的规则<\/strong><\/p>\n<ol>\n<li><code>free<\/code> 的实参，必须是 <code>malloc/calloc/realloc<\/code> 返回的那个值，不能加、不能减。<\/li>\n<li>一块内存只 free 一次；free 之后<strong>立刻置 NULL<\/strong>（<code>free(p); p = NULL;<\/code>），这样重复 free 会被 <code>free(NULL)<\/code> 挡住。<\/li>\n<li>free 之后<strong>永远不要再访问<\/strong>。要清指针，不只是\"礼貌\"，是防 ③④ 这类 bug。<\/li>\n<\/ol>\n<p><strong>追问<\/strong>：<code>free(NULL)<\/code> 会怎样？→ 什么都不做，安全。所以「free 后置 NULL」是个很便宜的保险。<\/p>\n<p><strong>要点（自评用）<\/strong><\/p>\n<ol>\n<li>①③④ 判为 UB 且原因对。<\/li>\n<li>说出「只能 free 原始地址」。<\/li>\n<li>知道 free 后置 NULL 的用意。<\/li>\n<\/ol>"}, {"id": "P26", "topic": "4.2 野指针：定义以及解决", "outline_ref": "4.2", "qtype": "code_read", "stage_label": "常见错误", "difficulty": 3, "plain": "1. ①② 错在哪？ 2. ③④ 会发生什么？一定会崩溃吗？ 3. 怎么改？", "stem_html": "<pre><code class=\"lang-c\">#include &lt;stdio.h&gt;\n\nchar *make_msg(void)\n{\n    char buf[16] = &quot;hello&quot;;\n    return buf;              /* ① */\n}\n\nint *make_int(void)\n{\n    int x = 42;\n    return &amp;x;               /* ② */\n}\n\nint main(void)\n{\n    char *s = make_msg();\n    int  *q = make_int();\n\n    printf(&quot;%s\\n&quot;, s);       /* ③ */\n    printf(&quot;%d\\n&quot;, *q);      /* ④ */\n    return 0;\n}<\/code><\/pre>\n<ol>\n<li>①② 错在哪？<\/li>\n<li>③④ 会发生什么？一定会崩溃吗？<\/li>\n<li>怎么改？<\/li>\n<\/ol>", "answer_html": "<p><strong>1. 返回的是「函数局部变量的地址」。<\/strong><br><code>buf<\/code> 和 <code>x<\/code> 都在 <code>make_*<\/code> 的栈帧里。函数返回时栈帧被回收，那块内存<strong>不再属于这个变量<\/strong>。<br>返回它的地址，等于交出一个指向「已经失效的存储」的指针——这就是<strong>悬垂指针<\/strong>。<\/p>\n<p><strong>2. 不一定会崩，这才是它可怕的地方。<\/strong><br>栈页并没有被 unmap，只是「所有权」没了：<\/p>\n<ul>\n<li>之后没有别的函数调用覆盖它 → 你读到 <code>hello<\/code> / <code>42<\/code>，<strong>看起来完全正常<\/strong>。<\/li>\n<li><code>printf<\/code> 自己的栈帧正好盖上去 → 打印乱码或别的数。<\/li>\n<li>只有越到保护页才会段错误。<\/li>\n<\/ul>\n<p>所以这是 <strong>UB，不是「一定报错」<\/strong>。加一句 <code>printf<\/code>、换个 <code>-O2<\/code>，结果就可能变。<br>（你错题档 D0 那行「返回局部变量地址会段错误、程序崩溃 → 实际不崩」记的就是这件事。）<\/p>\n<p><strong>3. 三种改法<\/strong><\/p>\n<ol>\n<li>让调用者提供缓冲区：<code>void make_msg(char *out, size_t n)<\/code><\/li>\n<li>返回 <code>static<\/code> 数组（单线程、不可重入，慎用）<\/li>\n<li>堆上分配，调用者负责 free：<code>char *p = malloc(16); ... return p;<\/code><\/li>\n<\/ol>\n<p><strong>顺带<\/strong>：编译器一般会给个 <code>-Wreturn-local-addr<\/code> 警告，别把它关掉。<\/p>\n<p><strong>要点（自评用）<\/strong><\/p>\n<ol>\n<li>说出「栈帧回收，局部变量生命周期结束」。<\/li>\n<li>明确「不一定崩，是 UB」，并解释为什么常看起来正常。<\/li>\n<li>给出至少一种正确改法。<\/li>\n<\/ol>"}, {"id": "P27", "topic": "4.3 内存泄漏", "outline_ref": "4.3", "qtype": "short", "stage_label": "概念", "difficulty": 2, "plain": "两个概念别混： 1. 内存泄漏是怎么发生的？列出至少三种常见成因。 2. 「内存碎片」和「内存泄漏」是一回事吗？嵌入式里为什么经常干脆禁止动态分配？", "stem_html": "<p><strong>两个概念别混：<\/strong><\/p>\n<ol>\n<li>内存泄漏是怎么发生的？列出至少三种常见成因。<\/li>\n<li>「内存碎片」和「内存泄漏」是一回事吗？嵌入式里为什么经常干脆禁止动态分配？<\/li>\n<\/ol>", "answer_html": "<p><strong>1. 泄漏 = 分配了、丢了指针、再也还回去。<\/strong><\/p>\n<p>常见成因：<\/p>\n<ul>\n<li>函数中途 <code>return<\/code>，跳过了后面的 <code>free<\/code>（错误处理路径最容易漏）<\/li>\n<li>指针被重新赋值：<code>p = malloc(...)<\/code> 之前没 <code>free(p)<\/code>，旧块再也找不到<\/li>\n<li>只把指针 <code>p = NULL<\/code>，却没先 <code>free<\/code><\/li>\n<li>结构体里藏着指针，容器析构时只释放了容器本身<\/li>\n<li><code>realloc<\/code> 失败时用 <code>p = realloc(p, ...)<\/code>，原块直接丢<\/li>\n<\/ul>\n<p><strong>2. 不是一回事。<\/strong><\/p>\n<ul>\n<li><strong>泄漏<\/strong>：内存还在你手里（分配记录还在），只是你找不到它了。总量<strong>只增不减<\/strong>。<\/li>\n<li><strong>碎片<\/strong>：内存都还回去了，但被切成很多小块，凑不出一块连续的大内存。<\/li>\n<\/ul>\n<p>  总量够，却申请不到——长时间运行的程序（尤其嵌入式和内核）最怕这个。<\/p>\n<p>（还有<strong>内部碎片<\/strong>：分配器按对齐/最小块向上取整，你要 13 字节它给 16 字节，那 3 字节浪费在块内。）<\/p>\n<p><strong>3. 嵌入式为什么常禁止 malloc<\/strong><\/p>\n<table><thead><tr><th>原因<\/th><th>说明<\/th><\/tr><\/thead><tbody><tr><td>不可预测<\/td><td>分配耗时不固定（要找空闲块、可能触发合并），实时性差<\/td><\/tr><tr><td>易碎片<\/td><td>长期运行后大块申请不到，即使总空闲够<\/td><\/tr><tr><td>失败难处理<\/td><td>嵌入式里拿不到内存往往没法优雅降级<\/td><\/tr><tr><td>更难调试<\/td><td>崩溃点离出错点很远<\/td><\/tr><\/tbody><\/table>\n<p>常见做法：<strong>静态分配 + 内存池<\/strong>，启动时一次性划好，运行期只做固定大小的取还。<br>Linux 内核里也是这个思路（<code>kmalloc<\/code> 有 slab 缓存、<code>kmem_cache<\/code>）。<\/p>\n<p><strong>要点（自评用）<\/strong><\/p>\n<ol>\n<li>举出至少三种泄漏成因。<\/li>\n<li>说清泄漏与碎片的区别（丢失 vs 切碎）。<\/li>\n<li>嵌入式里禁止 malloc 的理由说得出一两条。<\/li>\n<\/ol>"}, {"id": "P28", "topic": "5.1 程序内存的几大部分", "outline_ref": "5.1", "qtype": "short", "stage_label": "概念", "difficulty": 2, "plain": "程序运行时的内存分成哪几部分？各自放什么、什么时候分配和释放、在地址空间的哪一端？", "stem_html": "<p>程序运行时的内存分成哪几部分？各自放什么、什么时候分配和释放、在地址空间的哪一端？<\/p>", "answer_html": "<p>从高地址到低地址（典型的 x86-64 Linux 布局）：<\/p>\n<table><thead><tr><th>区<\/th><th>放什么<\/th><th>生命周期<\/th><th>增长方向<\/th><\/tr><\/thead><tbody><tr><td><strong>栈<\/strong><\/td><td>局部变量、函数参数、返回地址<\/td><td>随函数调用自动分配、返回自动释放<\/td><td>向<strong>低<\/strong>地址增长<\/td><\/tr><tr><td><strong>堆<\/strong><\/td><td><code>malloc<\/code> / <code>calloc<\/code> / <code>realloc<\/code> 的块<\/td><td>手动 <code>free<\/code><\/td><td>向<strong>高<\/strong>地址增长<\/td><\/tr><tr><td><strong>.bss<\/strong><\/td><td>未初始化（或初始化为 0）的全局/静态变量<\/td><td>整个程序<\/td><td>固定<\/td><\/tr><tr><td><strong>.data<\/strong><\/td><td>已初始化的全局/静态变量<\/td><td>整个程序<\/td><td>固定<\/td><\/tr><tr><td><strong>.rodata<\/strong><\/td><td>字符串字面量、<code>const<\/code> 全局量<\/td><td>整个程序，只读<\/td><td>固定<\/td><\/tr><tr><td><strong>.text（代码区）<\/strong><\/td><td>机器指令<\/td><td>整个程序，只读<\/td><td>固定<\/td><\/tr><\/tbody><\/table>\n<p><strong>栈与堆的对比（必背）<\/strong><\/p>\n<table><thead><tr><th><\/th><th>栈<\/th><th>堆<\/th><\/tr><\/thead><tbody><tr><td>谁管<\/td><td>编译器自动<\/td><td>程序员手动<\/td><\/tr><tr><td>速度<\/td><td>快（只动 <code>esp<\/code> 指针）<\/td><td>慢（找空闲块、可能要系统调用）<\/td><\/tr><tr><td>大小<\/td><td>小且固定（Linux 默认 8MB，线程可调）<\/td><td>大（受物理内存和交换限制）<\/td><\/tr><tr><td>失败后果<\/td><td>栈溢出 → 段错误<\/td><td>返回 NULL，可处理<\/td><\/tr><tr><td>碎片<\/td><td>无<\/td><td>有<\/td><\/tr><\/tbody><\/table>\n<p><strong>两个容易说错的点<\/strong><\/p>\n<ul>\n<li><code>.bss<\/code> 里\"未初始化\"的变量其实<strong>被清零了<\/strong>，但它的零不占可执行文件体积（只在加载时占内存）。<\/li>\n<li>字符串字面量在 <code>.rodata<\/code>，不在栈上——所以 <code>char *s = \"abc\"; s[0] = 'X';<\/code> 会炸。<\/li>\n<\/ul>\n<p><strong>要点（自评用）<\/strong><\/p>\n<ol>\n<li>五区齐全，并说清各自放什么。<\/li>\n<li>栈向低地址、堆向高地址（方向别记反）。<\/li>\n<li>提到 <code>.rodata<\/code> 只读、字面量在那里。<\/li>\n<\/ol>"}, {"id": "P29", "topic": "5.1 程序内存的几大部分", "outline_ref": "5.1", "qtype": "code_read", "stage_label": "代码用法", "difficulty": 3, "plain": "指出下面每个标号的内容分别在哪个区（栈 / 堆 / .bss / .data / .rodata / 代码区）：", "stem_html": "<p>指出下面每个标号的内容分别在哪个区（栈 / 堆 / .bss / .data / .rodata / 代码区）：<\/p>\n<pre><code class=\"lang-c\">#include &lt;stdlib.h&gt;\n\nint  g_init   = 10;        /* ① */\nint  g_uninit;             /* ② */\nstatic int s_init = 20;    /* ③ */\nconst char *msg = &quot;hello&quot;; /* ④ */\n\nvoid show(int n)           /* ⑤ */\n{\n    static int ls = 30;    /* ⑥ */\n    int        local = 40; /* ⑦ */\n    char      *heap = malloc(16);   /* ⑧ */\n    ...\n}<\/code><\/pre>", "answer_html": "<table><thead><tr><th>标号<\/th><th>内容<\/th><th>落在哪<\/th><th>理由<\/th><\/tr><\/thead><tbody><tr><td>①<\/td><td><code>g_init<\/code> 这个 int<\/td><td><strong>.data<\/strong><\/td><td>全局、已初始化、可写<\/td><\/tr><tr><td>②<\/td><td><code>g_uninit<\/code> 这个 int<\/td><td><strong>.bss<\/strong><\/td><td>全局、未初始化，加载时清零<\/td><\/tr><tr><td>③<\/td><td><code>s_init<\/code> 这个 int<\/td><td><strong>.data<\/strong><\/td><td><code>static<\/code> 只改链接属性（本文件可见），不改存储区<\/td><\/tr><tr><td>④<\/td><td><code>msg<\/code> 这个<strong>指针变量<\/strong><\/td><td><strong>.data<\/strong><\/td><td>已初始化的全局指针，可写<\/td><\/tr><tr><td>④'<\/td><td><code>\"hello\"<\/code> 这 6 个字节<\/td><td><strong>.rodata<\/strong><\/td><td>字符串字面量，只读<\/td><\/tr><tr><td>⑤<\/td><td>函数体机器指令<\/td><td><strong>代码区 .text<\/strong><\/td><td>只读、可执行<\/td><\/tr><tr><td>⑥<\/td><td><code>ls<\/code> 这个 int<\/td><td><strong>.data<\/strong><\/td><td>函数内 <code>static<\/code>：作用域仍在函数内，但<strong>生命周期是整个程序<\/strong>，初始化只做一次<\/td><\/tr><tr><td>⑦<\/td><td><code>local<\/code><\/td><td><strong>栈<\/strong><\/td><td>普通局部变量，随 <code>show<\/code> 的栈帧生灭<\/td><\/tr><tr><td>⑧<\/td><td><code>heap<\/code> 指针本身<\/td><td><strong>栈<\/strong><\/td><td>局部指针变量<\/td><\/tr><tr><td>⑧'<\/td><td><code>malloc(16)<\/code> 拿到的 16 字节<\/td><td><strong>堆<\/strong><\/td><td>手动分配，需要 <code>free<\/code><\/td><\/tr><\/tbody><\/table>\n<p><strong>最容易被问的两个<\/strong><\/p>\n<ul>\n<li><strong>④ 要拆成两半<\/strong>：指针变量和它指向的字符串不在同一个区。<code>msg<\/code> 可以改指向，<code>\"hello\"<\/code> 不能改。<\/li>\n<li><strong>⑥ 函数里的 static 在 .data，不在栈<\/strong>：所以函数返回后它还在，下次调用还能读到上次的值。<\/li>\n<\/ul>\n<p><strong>要点（自评用）<\/strong><\/p>\n<ol>\n<li>①③④⑥ 都归到 <code>.data<\/code>，②归 <code>.bss<\/code>，⑦⑧归栈。<\/li>\n<li>把 ④ 拆成「指针」和「字面量」两部分。<\/li>\n<li>说清函数内 static 为什么不在栈上。<\/li>\n<\/ol>"}, {"id": "P30", "topic": "5.2 常见未定义行为清单", "outline_ref": "5.2", "qtype": "short", "stage_label": "概念", "difficulty": 3, "plain": "列出至少 8 种 C 语言里的未定义行为（UB） ，尽量都跟指针/内存有关，并各用一句话说明。", "stem_html": "<p><strong>列出至少 8 种 C 语言里的未定义行为（UB）<\/strong>，尽量都跟指针/内存有关，并各用一句话说明。<\/p>", "answer_html": "<table><thead><tr><th>#<\/th><th>未定义行为<\/th><th>一句话<\/th><\/tr><\/thead><tbody><tr><td>1<\/td><td>数组越界读写<\/td><td>访问了对象之外的内存，不保证是脏数据还是崩溃<\/td><\/tr><tr><td>2<\/td><td>解引用 NULL<\/td><td>地址 0 基本不会映射，直接段错误<\/td><\/tr><tr><td>3<\/td><td>野指针 / 未初始化指针<\/td><td>往随机地址读写<\/td><\/tr><tr><td>4<\/td><td>悬垂指针（free 后 / 返回局部变量）<\/td><td>内存已归还或已失效，再访问是 UB<\/td><\/tr><tr><td>5<\/td><td>free 非 malloc 返回的地址<\/td><td>包括 <code>p+1<\/code>、栈地址、已 free 过的（double free）<\/td><\/tr><tr><td>6<\/td><td>有符号整数溢出<\/td><td><code>INT_MAX + 1<\/code>，无符号是回绕（有定义），有符号不是<\/td><\/tr><tr><td>7<\/td><td>移位越界<\/td><td>移位数 ≥ 类型位宽，或左移负数<\/td><\/tr><tr><td>8<\/td><td>修改字符串字面量<\/td><td>字面量在只读段<\/td><\/tr><tr><td>9<\/td><td>除以 0<\/td><td>整数除零，硬件直接异常<\/td><\/tr><tr><td>10<\/td><td>同一表达式里多次修改同一对象且无序列点<\/td><td><code>i = i++ + 1;<\/code>、<code>f(i++, i++)<\/code><\/td><\/tr><tr><td>11<\/td><td>指针算术跑出对象之外<\/td><td>只允许「末尾后一格」，再远就是 UB<\/td><\/tr><tr><td>12<\/td><td>用错格式符 printf<\/td><td><code>%d<\/code> 打印 <code>double<\/code>，参数类型对不上<\/td><\/tr><\/tbody><\/table>\n<p><strong>为什么这件事重要<\/strong>：UB 不是「运行错误」，而是「标准不保证任何结果」。<br>这意味着<strong>编译器有权做任何事<\/strong>，包括看起来完全正常的输出——所以「我这儿跑得好好的」从来不是证据。<\/p>\n<p><strong>两条实用习惯<\/strong><\/p>\n<ol>\n<li>编译加 <code>-Wall -Wextra -Werror<\/code>，很多 UB 在编译期就能被警告出来。<\/li>\n<li>用 <code>-fsanitize=address,undefined<\/code> 跑一遍（ASan/UBSan），能抓到越界、use-after-free、有符号溢出。<\/li>\n<\/ol>\n<p><strong>要点（自评用）<\/strong><\/p>\n<ol>\n<li>列到 8 种以上，且至少半数与指针/内存有关。<\/li>\n<li>能说出有符号溢出是 UB、无符号是回绕。<\/li>\n<li>知道 UB ≠ 一定崩溃，也≠ 一定不崩。<\/li>\n<\/ol>"}];</script>
+<script>/* C 刷题 · 离线单页版
+   题库在 window.__BANK__，答题记录存 localStorage，导出/导入按 id 合并。 */
+(function () {
+  'use strict';
+
+  const BANK = window.__BANK__ || [];
+  const KEY = 'cquiz.data.v1';
+  const QT = { short: '简答', code_read: '程序阅读', handwrite: '手撕', single: '单选', multi: '多选', judge: '判断', fill: '填空' };
+  const GRADE = { 0: '错', 1: '半对', 2: '对' };
+
+  let S = load();
+  let session = null;
+  let cur = null;
+
+  const $ = (s, r) => (r || document).querySelector(s);
+  const app = () => document.getElementById('app');
+
+  function load() {
+    try {
+      const d = JSON.parse(localStorage.getItem(KEY));
+      if (d && Array.isArray(d.attempts)) return d;
+    } catch (e) { }
+    return { attempts: [] };
+  }
+  function save() { localStorage.setItem(KEY, JSON.stringify(S)); }
+  function uid() {
+    return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+  }
+  function go(name) {
+    // hash 相同不会触发 hashchange，这里手动重绘
+    if (location.hash === '#' + name) route();
+    else location.hash = '#' + name;
+  }
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  }
+  function qById(id) { return BANK.find(q => q.id === id); }
+
+  /* ---------------- 派生统计 ---------------- */
+  function attemptsOf(qid) {
+    return S.attempts.filter(a => a.qid === qid).sort((x, y) => x.ts - y.ts);
+  }
+  function qState(qid) {
+    const list = attemptsOf(qid);
+    if (!list.length) return { seen: 0, last: null, wrong: 0, streak: 0 };
+    let streak = 0;
+    for (let i = list.length - 1; i >= 0; i--) {
+      if (list[i].grade === 2) streak++; else break;
+    }
+    return {
+      seen: list.length,
+      last: list[list.length - 1],
+      wrong: list.filter(a => a.grade < 2).length,
+      streak: streak
+    };
+  }
+  function pool() {
+    return BANK.filter(q => { const st = qState(q.id); return st.last && st.last.grade < 2; });
+  }
+  function mastered() {
+    return BANK.filter(q => qState(q.id).streak >= 2);
+  }
+  function overview() {
+    const total = S.attempts.length;
+    const right = S.attempts.filter(a => a.grade === 2).length;
+    const days = {};
+    S.attempts.forEach(a => {
+      const d = new Date(a.ts).toISOString().slice(0, 10);
+      days[d] = (days[d] || 0) + 1;
+    });
+    let streak = 0;
+    const oneDay = 86400000;
+    let d = new Date();
+    if (!days[d.toISOString().slice(0, 10)]) d = new Date(Date.now() - oneDay);
+    while (days[d.toISOString().slice(0, 10)]) { streak++; d = new Date(d.getTime() - oneDay); }
+    const byTopic = {};
+    S.attempts.forEach(a => {
+      const q = qById(a.qid); if (!q) return;
+      const k = q.topic;
+      byTopic[k] = byTopic[k] || { n: 0, ok: 0 };
+      byTopic[k].n++; if (a.grade === 2) byTopic[k].ok++;
+    });
+    return {
+      bank: BANK.length, total, right,
+      acc: total ? Math.round(right * 100 / total) : 0,
+      pool: pool().length, mastered: mastered().length,
+      today: days[new Date().toISOString().slice(0, 10)] || 0,
+      streak, byTopic
+    };
+  }
+
+  /* ---------------- 视图 ---------------- */
+  function nav() {
+    const tabs = [['home', '◎', '总览'], ['pick', '✎', '练习'], ['wrong', '✗', '错题'], ['hist', '☰', '历史'], ['more', 'ⓘ', '设置']];
+    return '<nav class="tabbar">' + tabs.map(([k, ico, label]) =>
+      '<a href="#' + k + '" data-tab="' + k + '"><span class="ico">' + ico + '</span>' + label + '</a>').join('') + '</nav>';
+  }
+
+  function viewHome() {
+    const o = overview();
+    return '<div class="card"><h1>今天练点什么</h1>' +
+      '<p class="muted">只有输出才算复习。</p>' +
+      '<div class="row" style="margin-top:12px">' +
+      '<a class="btn primary" href="#pick">开始练习</a>' +
+      '<a class="btn" href="#wrong">错题重练</a></div></div>' +
+      '<div class="grid g4">' +
+      '<div class="stat"><div class="n">' + o.bank + '</div><div class="l">题库</div></div>' +
+      '<div class="stat"><div class="n">' + o.total + '</div><div class="l">累计作答</div></div>' +
+      '<div class="stat"><div class="n">' + o.acc + '%</div><div class="l">正确率</div></div>' +
+      '<div class="stat"><div class="n" style="color:var(--bad)">' + o.pool + '</div><div class="l">待消化错题</div></div>' +
+      '</div>' +
+      '<div class="card"><strong>今天 ' + o.today + ' 题 · 连续 ' + o.streak + ' 天</strong>' +
+      '<p class="muted" style="margin:8px 0 0">数据存在这台设备的浏览器里。换设备时去「设置」导出再导入。</p></div>';
+  }
+
+  function viewPick() {
+    const topics = [...new Set(BANK.map(q => q.topic))];
+    const counts = {};
+    BANK.forEach(q => { counts[q.topic] = (counts[q.topic] || 0) + 1; });
+    const types = [...new Set(BANK.map(q => q.qtype))];
+    const tcount = {};
+    BANK.forEach(q => { tcount[q.qtype] = (tcount[q.qtype] || 0) + 1; });
+
+    return '<div class="card"><h1>选择练习范围</h1>' +
+      '<label class="f">模式</label><div class="row">' +
+      [['random', '随机'], ['review', '最久未练'], ['wrong', '错题池']].map(([k, l]) =>
+        '<label class="btn ghost" style="flex:1"><input type="radio" name="mode" value="' + k + '"' +
+        (k === 'random' ? ' checked' : '') + '> ' + l + '</label>').join('') + '</div>' +
+      '<label class="f">题型（不选=全部）</label><div class="row">' +
+      types.map(t => '<label class="btn ghost" style="flex:1"><input type="checkbox" name="type" value="' + t + '"> ' +
+        QT[t] + ' <span class="muted" style="margin-left:auto">' + tcount[t] + '</span></label>').join('') + '</div>' +
+      '<label class="f">大纲节（不选=全部）</label><div class="grid g2">' +
+      topics.map(t => '<label class="btn ghost" style="justify-content:flex-start"><input type="checkbox" name="topic" value="' +
+        esc(t) + '"> ' + esc(t) + ' <span class="muted" style="margin-left:auto">' + counts[t] + '</span></label>').join('') + '</div>' +
+      '<label class="f">题数</label><input type="number" id="count" value="10" min="1" max="200">' +
+      '<div style="margin-top:16px"><button class="btn primary block" id="go">开始</button></div></div>';
+  }
+
+  function viewWrong() {
+    const list = pool();
+    const done = mastered();
+    return '<div class="card"><h1>错题池</h1>' +
+      '<p class="muted">待消化 ' + list.length + ' 题 · 已掌握 ' + done.length + ' 题（连对 2 次自动出池）</p>' +
+      '<div class="row" style="margin-top:10px"><button class="btn primary" id="drill">练这批错题</button></div></div>' +
+      (list.length ? '<div class="list">' + list.map(q => {
+        const st = qState(q.id);
+        return '<div class="item"><div class="t">' + esc(q.plain) + '</div><div class="m">' +
+          '<span class="badge no">错 ' + st.wrong + ' 次</span><span>' + QT[q.qtype] + '</span>' +
+          '<span>' + esc(q.topic) + '</span><span class="chip">大纲 ' + esc(q.outline_ref || '') + '</span></div></div>';
+      }).join('') + '</div>' : '<div class="card"><p class="muted">池子是空的。</p></div>');
+  }
+
+  function viewHist() {
+    const list = S.attempts.slice().sort((a, b) => b.ts - a.ts).slice(0, 120);
+    if (!list.length) return '<div class="card"><p class="muted">还没有作答记录。</p></div>';
+    return '<div class="card"><h1>作答历史</h1><p class="muted">点开回看你当时写的原文。</p></div>' +
+      '<div class="list">' + list.map(a => {
+        const q = qById(a.qid); if (!q) return '';
+        const cls = a.grade === 2 ? 'ok' : (a.grade === 1 ? 'mid' : 'no');
+        return '<div class="item"><div class="t">' + esc(q.plain) + '</div>' +
+          '<div class="m"><span class="badge ' + cls + '">' + GRADE[a.grade] + '</span>' +
+          '<span>' + QT[q.qtype] + '</span><span>' + esc(q.topic) + '</span>' +
+          '<span>' + new Date(a.ts).toLocaleString() + '</span></div>' +
+          '<details><summary>回看这题</summary>' +
+          '<div class="ansbox">' + q.stem_html + '</div>' +
+          '<div class="myans">' + (a.answer ? esc(a.answer) : '（没写文字，直接自评）') + '</div>' +
+          '<div class="label">参考答案</div><div class="ansbox">' + q.answer_html + '</div>' +
+          '</details></div>';
+      }).join('') + '</div>';
+  }
+
+  function viewMore() {
+    return '<div class="card"><h1>设置</h1>' +
+      '<p class="muted">题库 ' + BANK.length + ' 题 · 记录 ' + S.attempts.length + ' 条 · 数据只存在本机</p>' +
+      '<div class="label">同步到另一台设备</div>' +
+      '<p class="muted">导出成 json，发到另一台设备后用「导入」合并：作答按 id 去重，不会覆盖已有记录。</p>' +
+      '<div class="row" style="margin-top:10px">' +
+      '<button class="btn primary" id="exp">导出数据</button>' +
+      '<button class="btn" id="imp">导入数据</button></div>' +
+      '<input type="file" id="file" accept=".json,application/json" style="display:none">' +
+      '<div class="label">危险操作</div>' +
+      '<button class="btn bad block" id="clr">清空本机记录</button>' +
+      '</div>';
+  }
+
+  /* ---------------- 答题 ---------------- */
+  function pickQuestions() {
+    const mode = ($('input[name=mode]:checked') || {}).value || 'random';
+    const types = [...document.querySelectorAll('input[name=type]:checked')].map(e => e.value);
+    const topics = [...document.querySelectorAll('input[name=topic]:checked')].map(e => e.value);
+    let count = parseInt($('#count').value, 10) || 10;
+
+    let list = BANK.slice();
+    if (types.length) list = list.filter(q => types.includes(q.qtype));
+    if (topics.length) list = list.filter(q => topics.includes(q.topic));
+    if (mode === 'wrong') list = list.filter(q => { const st = qState(q.id); return st.last && st.last.grade < 2; });
+    if (mode === 'review') {
+      list.sort((a, b) => {
+        const sa = qState(a.id), sb = qState(b.id);
+        const ta = sa.last ? sa.last.ts : 0, tb = sb.last ? sb.last.ts : 0;
+        return ta - tb;
+      });
+    } else if (mode === 'random') {
+      for (let i = list.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [list[i], list[j]] = [list[j], list[i]];
+      }
+    }
+    return list.slice(0, count);
+  }
+
+  function startSession(queue) {
+    if (!queue.length) { alert('这个范围里没有题'); return; }
+    session = { queue, pos: 0 };
+    go('quiz');
+  }
+
+  function viewQuiz() {
+    if (!session || session.pos >= session.queue.length) {
+      return '<div class="card"><h1>这一轮结束了</h1><p class="muted">记录已保存。</p>' +
+        '<div class="row" style="margin-top:14px"><a class="btn primary" href="#pick">再来一轮</a>' +
+        '<a class="btn" href="#wrong">看错题</a></div></div>';
+    }
+    cur = session.queue[session.pos];
+    const idx = session.pos + 1, total = session.queue.length;
+    return '<div class="progress"><div class="phead"><span><b>' + idx + '</b> / ' + total + '</span>' +
+      '<span>' + esc(cur.topic) + '</span></div>' +
+      '<div class="track"><i style="width:' + (idx / total * 100) + '%"></i></div></div>' +
+      '<div class="card"><div class="meta">' +
+      '<span class="chip t">' + QT[cur.qtype] + '</span>' +
+      '<span class="chip">' + esc(cur.stage_label || '') + '</span>' +
+      '<span class="chip">大纲 ' + esc(cur.outline_ref || '') + '</span></div>' +
+      '<div class="stem">' + cur.stem_html + '</div>' +
+      '<textarea id="ta" placeholder="写下你的答案（写多少算多少，写完对答案自评）"></textarea>' +
+      '<div class="grade" style="margin-top:10px"><button class="btn primary block" id="reveal">看参考答案</button></div>' +
+      '<div id="ref" class="ref hidden"></div>' +
+      '<div id="gbox" class="grade hidden"><div class="muted" style="margin-bottom:8px">对照答案，给自己判一下：</div>' +
+      '<div class="row"><button class="btn bad" data-g="0">错</button>' +
+      '<button class="btn mid" data-g="1">半对</button>' +
+      '<button class="btn good" data-g="2">对</button></div></div></div>';
+  }
+
+  function mountQuiz() {
+    if (!session || session.pos >= session.queue.length) return;
+    const key = 'draft.' + cur.id;
+    const ta = $('#ta');
+    ta.value = localStorage.getItem(key) || '';
+    ta.addEventListener('input', () => localStorage.setItem(key, ta.value));
+    $('#reveal').addEventListener('click', () => {
+      $('#ref').innerHTML = '<div class="label">参考答案</div>' + cur.answer_html;
+      $('#ref').classList.remove('hidden');
+      $('#reveal').classList.add('hidden');
+      $('#gbox').classList.remove('hidden');
+    });
+    document.querySelectorAll('#gbox [data-g]').forEach(b => {
+      b.addEventListener('click', () => {
+        const grade = parseInt(b.dataset.g, 10);
+        S.attempts.push({ id: uid(), qid: cur.id, answer: ta.value, grade, ts: Date.now() });
+        save();
+        localStorage.removeItem(key);
+        session.pos++;
+        go('quiz');
+      });
+    });
+  }
+
+  /* ---------------- 导入导出 ---------------- */
+  function exportData() {
+    const payload = { app: 'cquiz', version: 1, exportedAt: new Date().toISOString(), attempts: S.attempts };
+    const blob = new Blob([JSON.stringify(payload)], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'cquiz-' + new Date().toISOString().slice(0, 10) + '.json';
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+  }
+
+  function importData(file) {
+    const r = new FileReader();
+    r.onload = () => {
+      let d;
+      try { d = JSON.parse(r.result); } catch (e) { alert('不是合法的 JSON'); return; }
+      const incoming = (d && d.attempts) || [];
+      const seen = new Set(S.attempts.map(a => a.id));
+      let add = 0;
+      incoming.forEach(a => {
+        if (!a || !a.id || seen.has(a.id)) return;
+        if (!qById(a.qid)) return;      // 本机题库里没有这道题，跳过
+        S.attempts.push(a); seen.add(a.id); add++;
+      });
+      save();
+      alert('合并完成：新增 ' + add + ' 条记录（重复的已跳过）');
+      location.hash = '#home';
+    };
+    r.readAsText(file);
+  }
+
+  /* ---------------- 路由 ---------------- */
+  const VIEWS = { home: viewHome, pick: viewPick, wrong: viewWrong, hist: viewHist, more: viewMore, quiz: viewQuiz };
+
+  function route() {
+    const name = (location.hash || '#home').slice(1);
+    const v = VIEWS[name] || viewHome;
+    app().innerHTML = v();
+    document.querySelectorAll('.tabbar a').forEach(a => {
+      a.classList.toggle('on', a.dataset.tab === name);
+    });
+    if (name === 'wrong') {
+      const d = $('#drill');
+      if (d) d.addEventListener('click', () => { location.hash = '#pick?mode=wrong'; });
+    }
+    if (name === 'home') {
+      document.querySelectorAll('[data-mode=wrong]').forEach(a =>
+        a.addEventListener('click', () => { location.hash = '#pick?mode=wrong'; }));
+    }
+    if (name === 'pick') {
+      $('#go').addEventListener('click', () => startSession(pickQuestions()));
+      const m = new URLSearchParams((location.hash.split('?')[1]) || '');
+      if (m.get('mode') === 'wrong') {
+        const r = document.querySelector('input[name=mode][value=wrong]');
+        if (r) r.checked = true;
+      }
+    }
+    if (name === 'quiz') mountQuiz();
+    if (name === 'more') {
+      $('#exp').addEventListener('click', exportData);
+      $('#imp').addEventListener('click', () => $('#file').click());
+      $('#file').addEventListener('change', e => { if (e.target.files[0]) importData(e.target.files[0]); });
+      $('#clr').addEventListener('click', () => {
+        if (confirm('清空本机所有作答记录？此操作不可撤销，建议先导出。')) {
+          S = { attempts: [] }; save(); location.hash = '#home';
+        }
+      });
+    }
+    window.scrollTo(0, 0);
+  }
+
+  function boot() {
+    document.getElementById('root').innerHTML = '<div class="wrap" id="app"></div>' + nav();
+    window.addEventListener('hashchange', route);
+    // 自检钩子：?selftest=1 直接进答题卡，方便无头浏览器验证渲染
+    if (/[?&]selftest=1/.test(location.search) && BANK.length) {
+      session = { queue: BANK.slice(0, 3), pos: 0 };
+      location.hash = '#quiz';
+    }
+    route();
+    if ('serviceWorker' in navigator && location.protocol !== 'file:') {
+      navigator.serviceWorker.register('./sw.js').catch(() => { });
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', boot);
+})();
+</script>
+</body>
+</html>
