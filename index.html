@@ -257,7 +257,8 @@ body{padding-bottom:78px}
 .grade{position:static!important;background:transparent;padding:10px 0 4px;margin-top:10px}
 .stem pre,.ref pre,.ansbox pre{font-size:12.5px;line-height:1.55;white-space:pre;
   overflow-x:auto;-webkit-overflow-scrolling:touch;tab-size:4;max-width:100%}
-.tabbar{transform:translateZ(0);backface-visibility:hidden;will-change:transform}
+/* 之前这里的 translateZ / will-change 反而让底栏在滚动时抖，去掉 */
+.tabbar{position:fixed;left:0;right:0;bottom:0;z-index:30}
 
 @media(max-width:720px){
   .card{padding:14px 14px 12px}
@@ -281,7 +282,8 @@ body{padding-bottom:78px}
   background:#fff;border:1px solid var(--line);border-radius:16px;padding:14px;
   box-shadow:0 18px 48px rgba(16,24,40,.18);
   opacity:0;transform:translateY(14px) scale(.96);transform-origin:bottom right;
-  pointer-events:none;transition:opacity .2s ease,transform .22s cubic-bezier(.2,.8,.3,1)}
+  pointer-events:none;transition:opacity .2s ease,transform .22s cubic-bezier(.2,.8,.3,1);
+  overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
 .note-panel.open{opacity:1;transform:none;pointer-events:auto}
 @media(max-width:720px){.note-panel{right:12px;left:12px;width:auto;bottom:150px}}
 .note-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
@@ -1187,6 +1189,49 @@ body{padding-bottom:78px}
     }
   }
 
+  /* ---------- 手机端：锁背景滚动 + 把面板顶到键盘上方 ---------- */
+  let lockY = 0;
+  let locked = false;
+
+  function isMobile() { return window.matchMedia('(max-width: 720px)').matches; }
+
+  function lockScroll() {
+    if (locked || !isMobile()) return;
+    lockY = window.scrollY || window.pageYOffset || 0;
+    const b = document.body;
+    b.style.position = 'fixed';
+    b.style.top = -lockY + 'px';
+    b.style.left = '0';
+    b.style.right = '0';
+    b.style.width = '100%';
+    locked = true;
+  }
+  function unlockScroll() {
+    if (!locked) return;
+    const b = document.body;
+    b.style.position = '';
+    b.style.top = '';
+    b.style.left = '';
+    b.style.right = '';
+    b.style.width = '';
+    window.scrollTo(0, lockY);
+    locked = false;
+  }
+
+  // 键盘弹出时，visualViewport 会变矮；把面板贴到键盘上沿
+  function syncPanelToViewport() {
+    const panel = document.getElementById('npanel');
+    if (!panel || !panel.classList.contains('open')) return;
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const kb = Math.max(0, window.innerHeight - (vv.height + vv.offsetTop));
+    // 没键盘时也别贴在底栏上，留出 tab 的高度
+    const base = isMobile() ? 78 : 16;
+    panel.style.bottom = Math.max(kb + 12, base) + 'px';
+    panel.style.maxHeight = Math.max(180, Math.min(vv.height - kb - 24, 420)) + 'px';
+    panel.style.overflowY = 'auto';
+  }
+
   function mountNote() {
     const fab = document.createElement('button');
     fab.className = 'fab';
@@ -1211,9 +1256,16 @@ body{padding-bottom:78px}
     const openPanel = () => {
       refreshNotePanel();
       panel.classList.add('open');
+      lockScroll();                       // 打开时锁住背景，键盘弹出不带动页面
+      syncPanelToViewport();
       setTimeout(() => { const t = document.getElementById('ntext'); if (t) t.focus(); }, 180);
     };
-    const closePanel = () => panel.classList.remove('open');
+    const closePanel = () => {
+      panel.classList.remove('open');
+      panel.style.bottom = '';
+      panel.style.maxHeight = '';
+      unlockScroll();
+    };
 
     fab.addEventListener('click', () => {
       if (panel.classList.contains('open')) closePanel(); else openPanel();
@@ -1351,6 +1403,11 @@ body{padding-bottom:78px}
     document.getElementById('root').innerHTML = '<div class="wrap" id="app"></div>' + nav();
     window.addEventListener('hashchange', route);
     mountNote();
+    // 键盘弹出/收起时，把疑问面板重新贴到可视区底部
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', syncPanelToViewport);
+      window.visualViewport.addEventListener('scroll', syncPanelToViewport);
+    }
     // 自检钩子：?selftest=1 进答题卡（可跟题号，如 ?selftest=9）
     const st = location.search.match(/[?&]selftest=(\d+)/);
     if (st && BANK.length) {
