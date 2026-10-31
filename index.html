@@ -210,6 +210,24 @@ body{padding-bottom:78px}
 .dot.yellow{background:#f59e0b;box-shadow:0 0 0 3px rgba(245,158,11,.14)}
 .dot.blue{background:#3b82f6;box-shadow:0 0 0 3px rgba(59,130,246,.14)}
 
+/* ---------- 未来 7 天复习量 ---------- */
+.fc{display:flex;align-items:flex-end;gap:6px;height:96px;margin-top:12px}
+.fc-col{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%}
+.fc-n{font-size:11px;color:var(--dim);margin-bottom:4px;font-variant-numeric:tabular-nums}
+.fc-bar{display:block;width:100%;background:#dbeafe;border-radius:5px 5px 0 0;min-height:2px}
+.fc-lb{font-size:10.5px;color:var(--dim);margin-top:5px;white-space:nowrap}
+
+/* ---------- 薄弱点排行 ---------- */
+.wk{margin-top:8px}
+.wk-row{display:flex;align-items:center;gap:10px;padding:10px 2px;
+  border-bottom:1px dashed #eef0f3;cursor:pointer}
+.wk-row:last-child{border-bottom:0}
+.wk-row:active{background:#f8fafc}
+.wk-n{flex:1;min-width:0;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.wk-t{font-size:12px;color:var(--dim);flex:0 0 auto}
+.wk-r{font-size:12px;color:var(--bad);font-weight:600;flex:0 0 40px;text-align:right;
+  font-variant-numeric:tabular-nums}
+
 /* ---------- 历史：按题目归并 ---------- */
 .rec{padding:12px 2px;border-bottom:1px dashed #eef0f3}
 .rec:last-child{border-bottom:0}
@@ -401,14 +419,94 @@ body{padding-bottom:78px}
     };
   }
 
+  function endOfToday() {
+    const d = new Date();
+    d.setHours(23, 59, 59, 999);
+    return d.getTime();
+  }
+
   function dueList() {
     const out = [];
+    const limit = endOfToday();          // 今天之内到期的都算「今天该复习」
     BANK.forEach(q => {
       const d = dueInfo(q.id);
-      if (d && d.due <= Date.now()) out.push({ q: q, d: d });
+      if (d && d.due <= limit) out.push({ q: q, d: d });
     });
     out.sort((a, b) => a.d.due - b.d.due);
     return out;
+  }
+
+  // 未来 N 天每天到期多少题（第 0 格 = 今天，含已逾期的）
+  function dueForecast(days) {
+    const start = new Date();
+    start.setHours(0, 0, 0, 0);
+    const base = start.getTime();
+    const buckets = new Array(days).fill(0);
+    BANK.forEach(q => {
+      const d = dueInfo(q.id);
+      if (!d) return;
+      const idx = Math.floor((d.due - base) / DAY);
+      buckets[Math.min(Math.max(idx, 0), days - 1)]++;
+    });
+    return buckets;
+  }
+
+  // 薄弱点：按「错题次数」排，其次按错误率。只统计练过的。
+  function weakTopics(limit) {
+    const rows = [];
+    const topics = [...new Set(BANK.map(q => q.topic))];
+    topics.forEach(t => {
+      const qs = BANK.filter(q => q.topic === t);
+      let total = 0, wrong = 0;
+      qs.forEach(q => {
+        const list = attemptsOf(q.id);
+        total += list.length;
+        wrong += list.filter(a => a.grade < 2).length;
+      });
+      if (total > 0 && wrong > 0) rows.push({ topic: t, total: total, wrong: wrong, rate: wrong / total });
+    });
+    rows.sort((a, b) => (b.wrong - a.wrong) || (b.rate - a.rate));
+    return rows.slice(0, limit || 10);
+  }
+
+  function viewForecastCard() {
+    const b = dueForecast(7);
+    const max = Math.max.apply(null, b.concat([1]));
+    const names = ['今天', '明天', '后天'];
+    const cols = b.map((n, i) => {
+      const h = Math.round(n / max * 64) + (n ? 4 : 2);
+      return '<div class="fc-col">' +
+        '<span class="fc-n">' + (n || '') + '</span>' +
+        '<i class="fc-bar" style="height:' + h + 'px"></i>' +
+        '<span class="fc-lb">' + (names[i] || (i + 1) + 'd') + '</span></div>';
+    }).join('');
+    const total = b.reduce((a, c) => a + c, 0);
+    return '<div class="card"><div class="row" style="justify-content:space-between">' +
+      '<strong>未来 7 天复习量</strong><span class="muted">共 ' + total + ' 题</span></div>' +
+      '<div class="fc">' + cols + '</div></div>';
+  }
+
+  function viewWeakCard() {
+    const rows = weakTopics(10);
+    if (!rows.length) return '';
+    return '<div class="card"><div class="row" style="justify-content:space-between">' +
+      '<strong>薄弱点 Top ' + rows.length + '</strong>' +
+      '<span class="muted">按错题次数排</span></div>' +
+      '<div class="wk">' + rows.map(r =>
+        '<div class="wk-row" data-topic="' + esc(r.topic) + '">' +
+        '<span class="wk-n">' + esc(r.topic) + '</span>' +
+        '<span class="wk-t">错 ' + r.wrong + ' / ' + r.total + '</span>' +
+        '<span class="wk-r">' + Math.round(r.rate * 100) + '%</span></div>'
+      ).join('') + '</div>' +
+      '<p class="muted" style="margin:8px 0 0">点一行就直接练这个知识点（已掌握的会跳过）</p></div>';
+  }
+
+  // 只练某一个知识点
+  function startTopic(topic) {
+    let list = BANK.filter(q => q.topic === topic && qLevel(q.id) !== 'blue');
+    if (!list.length) list = BANK.filter(q => q.topic === topic);
+    list.sort((a, b) => qState(b.id).wrong - qState(a.id).wrong);
+    startSession(list.slice(0, 20));
   }
 
   function viewHome() {
@@ -424,7 +522,7 @@ body{padding-bottom:78px}
         '<p class="muted" style="margin:6px 0 0">继续练新题就好。' +
         (S.attempts.length ? '下一题到期时间会出现在这里。' : '') + '</p></div>';
 
-    return dueCard +
+    return dueCard + viewForecastCard() + viewWeakCard() +
       '<div class="card"><h1>今天练点什么</h1>' +
       '<p class="muted">只有输出才算复习。</p>' +
       '<div class="row" style="margin-top:12px">' +
@@ -1187,6 +1285,9 @@ body{padding-bottom:78px}
       const rb = $('#doreview');
       if (rb) rb.addEventListener('click', () => {
         startSession(dueList().map(x => x.q));
+      });
+      document.querySelectorAll('.wk-row').forEach(row => {
+        row.addEventListener('click', () => startTopic(row.dataset.topic));
       });
     }
     if (name === 'pick') {
