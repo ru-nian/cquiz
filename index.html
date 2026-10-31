@@ -661,6 +661,17 @@ body{padding-bottom:78px}
     return { add: add, remote: rows.length };
   }
 
+  // 推完之后重新数一次云端真实条数（之前的做法是拿 push 之前的数字，会一直显示旧值）
+  async function cloudCount() {
+    try {
+      const res = await fetch(apiBase() + '/rest/v1/attempts?select=id&limit=100000',
+        { headers: hdr(cloudCfg()) });
+      if (!res.ok) return null;
+      const rows = await res.json();
+      return Array.isArray(rows) ? rows.length : null;
+    } catch (e) { return null; }
+  }
+
   async function cloudPush(list) {
     if (!list.length) return;
     const c = cloudCfg();
@@ -696,7 +707,11 @@ body{padding-bottom:78px}
       }
 
       saveCfg(Object.assign(cloudCfg(), { lastSync: Date.now(), remote: r.remote }));
-      setStatus('同步完成：云端 ' + r.remote + ' 条 · 本机 ' + S.attempts.length + ' 条' +
+      const total = await cloudCount();
+      if (total != null) saveCfg(Object.assign(cloudCfg(), { lastSync: Date.now(), remote: total }));
+      else saveCfg(Object.assign(cloudCfg(), { lastSync: Date.now(), remote: S.attempts.length }));
+      const real = cloudCfg().remote;
+      setStatus('同步完成：云端 ' + real + ' 条 · 本机 ' + S.attempts.length + ' 条' +
         (r.add ? '（新增 ' + r.add + '）' : '（无新增）') +
         (nErr ? '｜疑问同步失败：' + nErr : (nAdd ? '｜疑问 +' + nAdd : '')));
       if (r.add > 0 || nAdd > 0) route();   // 真有新数据才重绘，避免把状态刷掉
@@ -1058,8 +1073,8 @@ body{padding-bottom:78px}
       });
     }
     window.scrollTo(0, 0);
-    // 切到任何页面都顺手对一次账（20 秒内不重复）
-    if (cloudReady() && !syncing && (Date.now() - (cloudCfg().lastSync || 0)) > 20000) {
+    // 切到任何页面都顺手对一次账（10 秒内不重复）
+    if (cloudReady() && !syncing && (Date.now() - (cloudCfg().lastSync || 0)) > 10000) {
       syncAll(true);
     }
   }
@@ -1081,6 +1096,19 @@ body{padding-bottom:78px}
     }
     // 配了云同步就在启动时悄悄对一次账
     if (cloudReady()) setTimeout(() => syncAll(true), 600);
+
+    // 手机切回前台 / 从后台恢复时也对一次账（这是"手机看不到最新记录"的常见原因）
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState !== 'visible') return;
+      if (!cloudReady() || syncing) return;
+      if (Date.now() - (cloudCfg().lastSync || 0) < 8000) return;
+      syncAll(true);
+    });
+    window.addEventListener('focus', () => {
+      if (!cloudReady() || syncing) return;
+      if (Date.now() - (cloudCfg().lastSync || 0) < 8000) return;
+      syncAll(true);
+    });
   }
 
   document.addEventListener('DOMContentLoaded', boot);

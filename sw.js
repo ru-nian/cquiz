@@ -1,4 +1,4 @@
-const CACHE = 'cquiz-cc871e354f';
+const CACHE = 'cquiz-34a089f96b';
 const ASSETS = ['./', './index.html', './manifest.webmanifest'];
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting()));
