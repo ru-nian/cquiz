@@ -181,12 +181,18 @@ body{padding-bottom:78px}
 }
 
 /* ---------- 折叠目录（练习范围） ---------- */
-.mod{font-size:12px;color:var(--dim);letter-spacing:1.5px;font-weight:700;margin:16px 2px 4px}
-.mod:first-of-type{margin-top:8px}
+.mod-row{display:flex;align-items:center;gap:8px;margin:16px 2px 4px}
+.mod-row .mod{margin:0;flex:1}
+.mod-row .num{flex:0 0 26px;text-align:right;color:var(--dim);font-size:12.5px;
+  font-variant-numeric:tabular-nums}
+.mod{font-size:12px;color:var(--dim);letter-spacing:1.5px;font-weight:700}
+.cbt{width:16px;height:16px;flex:0 0 auto;accent-color:var(--accent)}
+.leaf.all{border-bottom:1px solid #eceef1;padding-left:2px;font-weight:600}
 .acc{border:0;background:transparent;margin:0}
 .acc-head{display:flex;align-items:center;gap:8px;width:100%;padding:11px 2px;
-  border:0;border-bottom:1px solid #eceef1;background:transparent;
+  border-bottom:1px solid #eceef1;background:transparent;
   font:15px/1.5 inherit;font-weight:600;color:var(--text);cursor:pointer;text-align:left}
+.acc-head .acc-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .acc-head .chev{display:inline-block;color:var(--dim);transition:transform .22s ease;font-size:11px}
 .acc.open .acc-head .chev{transform:rotate(90deg)}
 .acc-body{max-height:0;overflow:hidden;transition:max-height .26s ease}
@@ -196,8 +202,8 @@ body{padding-bottom:78px}
 .leaf:last-child{border-bottom:0}
 .leaf input{margin:0;flex:0 0 auto}
 .leaf-t{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.num{flex:0 0 26px;text-align:right;color:var(--dim);font-size:12.5px;
-  font-variant-numeric:tabular-nums}
+.num{flex:0 0 30px;text-align:right;color:var(--dim);font-size:12.5px;
+  font-variant-numeric:tabular-nums;padding-right:2px}
 .mk{flex:0 0 14px;display:flex;align-items:center;justify-content:center}
 .dot{display:inline-block;width:8px;height:8px;border-radius:50%}
 .dot.red{background:#ef4444;box-shadow:0 0 0 3px rgba(239,68,68,.12)}
@@ -371,9 +377,55 @@ body{padding-bottom:78px}
       '<a href="#' + k + '" data-tab="' + k + '"><span class="ico">' + ico + '</span>' + label + '</a>').join('') + '</nav>';
   }
 
+  /* ---------------- 复习调度（简化遗忘曲线） ---------------- */
+  // 连对次数 → 下次复习间隔（天）。错了就回到第 1 档。
+  const SRS_DAYS = [1, 2, 4, 7, 15, 30];
+  const DAY = 86400000;
+
+  function dueInfo(qid) {
+    const list = attemptsOf(qid);
+    if (!list.length) return null;
+    let streak = 0;
+    for (let i = list.length - 1; i >= 0; i--) {
+      if (list[i].grade === 2) streak++; else break;
+    }
+    const stage = Math.min(streak, SRS_DAYS.length - 1);
+    const last = list[list.length - 1];
+    return {
+      stage: stage,
+      days: SRS_DAYS[stage],
+      due: last.ts + SRS_DAYS[stage] * DAY,
+      last: last,
+      wrong: list.filter(a => a.grade < 2).length,
+      total: list.length
+    };
+  }
+
+  function dueList() {
+    const out = [];
+    BANK.forEach(q => {
+      const d = dueInfo(q.id);
+      if (d && d.due <= Date.now()) out.push({ q: q, d: d });
+    });
+    out.sort((a, b) => a.d.due - b.d.due);
+    return out;
+  }
+
   function viewHome() {
     const o = overview();
-    return '<div class="card"><h1>今天练点什么</h1>' +
+    const due = dueList();
+    const dueCard = due.length
+      ? '<div class="card due"><strong>今天该复习 ' + due.length + ' 题</strong>' +
+        '<p class="muted" style="margin:6px 0 0">按遗忘曲线排的：错过/没连对的会更快回来。' +
+        '复习时只看原题，自己判会不会，看答案时能翻到以前写的答案和疑问。</p>' +
+        '<div class="row" style="margin-top:12px">' +
+        '<button class="btn primary" id="doreview" data-n="' + due.length + '">开始复习</button></div></div>'
+      : '<div class="card"><strong>今天没有到期的复习</strong>' +
+        '<p class="muted" style="margin:6px 0 0">继续练新题就好。' +
+        (S.attempts.length ? '下一题到期时间会出现在这里。' : '') + '</p></div>';
+
+    return dueCard +
+      '<div class="card"><h1>今天练点什么</h1>' +
       '<p class="muted">只有输出才算复习。</p>' +
       '<div class="row" style="margin-top:12px">' +
       '<a class="btn primary" href="#pick">开始练习</a>' +
@@ -422,7 +474,25 @@ body{padding-bottom:78px}
     return 'yellow';
   }
 
+  // 选中集合：存小节（topic）。默认全选。
+  const sel = new Set();
+  let selInited = false;
+
+  function allTopics() { return [...new Set(BANK.map(q => q.topic))]; }
+  function topicsWhere(fn) { return [...new Set(BANK.filter(fn).map(q => q.topic))]; }
+  function ensureSel() {
+    if (!selInited) { allTopics().forEach(t => sel.add(t)); selInited = true; }
+  }
+  function selCount() { return BANK.filter(q => sel.has(q.topic)).length; }
+
+  function checkState(scope, keys) {
+    const all = keys.length > 0 && keys.every(k => sel.has(k));
+    const some = keys.some(k => sel.has(k));
+    return { checked: all, indet: some && !all };
+  }
+
   function viewPick() {
+    ensureSel();
     const byCh = {};
     const modOf = {};
     BANK.forEach(q => {
@@ -437,34 +507,58 @@ body{padding-bottom:78px}
     BANK.forEach(q => { tcount[q.qtype] = (tcount[q.qtype] || 0) + 1; });
 
     let accs = '';
-    const chKeys = Object.keys(byCh);          // 保持题库顺序：先指针 5 章，再编译 5 章
+    const chKeys = Object.keys(byCh);
     if (!openChInited && chKeys.length) { openCh.add(chKeys[0]); openChInited = true; }
-    let lastMod = null;
+
+    // 按模块分组渲染：模块头可整选，章头可整选，小节可单选
+    const modOrder = [];
+    const byMod = {};
     chKeys.forEach(k => {
-      const ch = byCh[k];
-      const mod = modOf[k];
-      if (mod && mod !== lastMod) { accs += '<div class="mod">' + esc(mod) + '</div>'; lastMod = mod; }
-      const leaves = Object.keys(ch.topics).sort((a, b) => a.localeCompare(b, 'zh', { numeric: true }));
-      const total = leaves.reduce((n, t) => n + BANK.filter(q => q.topic === t).length, 0);
-      accs += '<div class="acc' + (openCh.has(k) ? ' open' : '') + '" data-ch="' + k + '">' +
-        '<button class="acc-head" type="button"><span class="chev">▶</span>' +
-        '<span>' + esc(ch.name) + '</span>' +
-        '<span class="muted" style="margin-left:auto;font-weight:400">' + total + ' 题</span></button>' +
-        '<div class="acc-body">' +
-        leaves.map(t => {
-          const st = topicStatus(t);
-          const dot = st === 'blue' ? '<span class="dot blue" title="已掌握"></span>'
-            : st === 'yellow' ? '<span class="dot yellow" title="错过，已对一次"></span>'
-              : st === 'red' ? '<span class="dot red" title="最近答错"></span>' : '';
-          const n = BANK.filter(q => q.topic === t).length;
-          return '<label class="leaf"><input type="checkbox" name="topic" value="' + esc(t) + '">' +
-            '<span class="leaf-t">' + esc(t) + '</span>' +
-            '<span class="num">' + n + '</span>' +
-            '<span class="mk">' + dot + '</span></label>';
-        }).join('') +
-        '</div></div>';
+      const m = modOf[k];
+      if (!byMod[m]) { byMod[m] = []; modOrder.push(m); }
+      byMod[m].push(k);
     });
 
+    modOrder.forEach(mod => {
+      const modTopics = topicsWhere(q => (q.module || '') === mod);
+      const modQs = BANK.filter(q => (q.module || '') === mod).length;
+      const mst = checkState('m', modTopics);
+      accs += '<div class="mod-row">' +
+        '<input type="checkbox" class="cbt" data-scope="m|' + esc(mod) + '"' +
+        (mst.checked ? ' checked' : '') + (mst.indet ? ' data-indet="1"' : '') + '>' +
+        '<span class="mod">' + esc(mod) + '</span>' +
+        '<span class="num">' + modQs + '</span></div>';
+
+      byMod[mod].forEach(k => {
+        const ch = byCh[k];
+        const leaves = Object.keys(ch.topics).sort((a, b) => a.localeCompare(b, 'zh', { numeric: true }));
+        const total = leaves.reduce((n, t) => n + BANK.filter(q => q.topic === t).length, 0);
+        const cst = checkState('c', leaves);
+        accs += '<div class="acc' + (openCh.has(k) ? ' open' : '') + '" data-ch="' + esc(k) + '">' +
+          '<div class="acc-head">' +
+          '<input type="checkbox" class="cbt" data-scope="c|' + esc(mod) + '|' + esc(ch.name) + '"' +
+          (cst.checked ? ' checked' : '') + (cst.indet ? ' data-indet="1"' : '') + '>' +
+          '<span class="chev">▶</span>' +
+          '<span class="acc-name">' + esc(ch.name) + '</span>' +
+          '<span class="num">' + total + '</span></div>' +
+          '<div class="acc-body">' +
+          leaves.map(t => {
+            const st = topicStatus(t);
+            const dot = st === 'blue' ? '<span class="dot blue" title="已掌握"></span>'
+              : st === 'yellow' ? '<span class="dot yellow" title="错过，已对一次"></span>'
+                : st === 'red' ? '<span class="dot red" title="最近答错"></span>' : '';
+            const n = BANK.filter(q => q.topic === t).length;
+            return '<label class="leaf"><input type="checkbox" class="cbt" data-scope="s|' + esc(t) + '"' +
+              (sel.has(t) ? ' checked' : '') + '>' +
+              '<span class="leaf-t">' + esc(t) + '</span>' +
+              '<span class="mk">' + dot + '</span>' +
+              '<span class="num">' + n + '</span></label>';
+          }).join('') +
+          '</div></div>';
+      });
+    });
+
+    const allSt = checkState('all', allTopics());
     return '<div class="card"><h1>选择练习范围</h1>' +
       '<label class="f">模式</label><div class="row">' +
       [['random', '随机'], ['review', '最久未练'], ['wrong', '错题池']].map(([k, l]) =>
@@ -473,9 +567,45 @@ body{padding-bottom:78px}
       '<label class="f">题型（不选=全部）</label><div class="row">' +
       types.map(t => '<label class="btn ghost" style="flex:1"><input type="checkbox" name="type" value="' + t + '"> ' +
         QT[t] + ' <span class="muted" style="margin-left:auto">' + tcount[t] + '</span></label>').join('') + '</div>' +
-      '<label class="f">大纲（点章节展开，不选=全部）</label>' + accs +
+      '<label class="f">范围（模块 / 章 / 小节都能整选）</label>' +
+      '<label class="leaf all"><input type="checkbox" class="cbt" data-scope="all"' +
+      (allSt.checked ? ' checked' : '') + '><span class="leaf-t"><b>全部 · C 语言</b></span>' +
+      '<span class="num">' + BANK.length + '</span></label>' +
+      accs +
       '<label class="f">题数</label><input type="number" id="count" value="10" min="1" max="200">' +
-      '<div style="margin-top:16px"><button class="btn primary block" id="go">开始</button></div></div>';
+      '<p class="muted" id="selinfo" style="margin:8px 0 0">已选 ' + selCount() + ' 题</p>' +
+      '<div style="margin-top:12px"><button class="btn primary block" id="go">开始</button></div></div>';
+  }
+
+  // 选完之后刷新所有勾选框状态与「已选 N 题」
+  function syncPickUI() {
+    document.querySelectorAll('.cbt[data-scope]').forEach(cb => {
+      const sc = cb.dataset.scope.split('|');
+      let keys;
+      if (sc[0] === 'all') keys = allTopics();
+      else if (sc[0] === 'm') keys = topicsWhere(q => (q.module || '') === sc[1]);
+      else if (sc[0] === 'c') keys = topicsWhere(q => (q.module || '') === sc[1] &&
+        (q.chapter || q.topic || '').trim() === sc[2]);
+      else keys = [sc[1]];
+      const st = checkState(sc[0], keys);
+      cb.checked = st.checked;
+      cb.indeterminate = st.indet;
+    });
+    const info = document.getElementById('selinfo');
+    if (info) info.textContent = '已选 ' + selCount() + ' 题';
+  }
+
+  // 点击复选框：模块/章/全部 → 整组加或减；小节 → 单个
+  function onScopeToggle(key, on) {
+    const sc = key.split('|');
+    let targets;
+    if (sc[0] === 'all') targets = allTopics();
+    else if (sc[0] === 'm') targets = topicsWhere(q => (q.module || '') === sc[1]);
+    else if (sc[0] === 'c') targets = topicsWhere(q => (q.module || '') === sc[1] &&
+      (q.chapter || q.topic || '').trim() === sc[2]);
+    else targets = [sc[1]];
+    targets.forEach(t => { if (on) sel.add(t); else sel.delete(t); });
+    syncPickUI();
   }
 
   function viewWrong() {
@@ -726,12 +856,10 @@ body{padding-bottom:78px}
   function pickQuestions() {
     const mode = ($('input[name=mode]:checked') || {}).value || 'random';
     const types = [...document.querySelectorAll('input[name=type]:checked')].map(e => e.value);
-    const topics = [...document.querySelectorAll('input[name=topic]:checked')].map(e => e.value);
     let count = parseInt($('#count').value, 10) || 10;
 
-    let list = BANK.slice();
+    let list = BANK.filter(q => sel.has(q.topic));
     if (types.length) list = list.filter(q => types.includes(q.qtype));
-    if (topics.length) list = list.filter(q => topics.includes(q.topic));
     // 已经答对的（蓝点）暂时不再出，避免重复消耗时间；错题池除外
     if (mode !== 'wrong') list = list.filter(q => qLevel(q.id) !== 'blue');
     if (mode === 'wrong') list = list.filter(q => { const st = qState(q.id); return st.last && st.last.grade < 2; });
@@ -764,13 +892,17 @@ body{padding-bottom:78px}
     }
     cur = session.queue[session.pos];
     const idx = session.pos + 1, total = session.queue.length;
+    const st = qState(cur.id);
+    const seenChip = st.seen
+      ? '<span class="chip">练过 ' + st.seen + ' 次 · 错 ' + st.wrong + ' 次</span>'
+      : '<span class="chip">第一次做</span>';
     return '<div class="progress"><div class="phead"><span><b>' + idx + '</b> / ' + total + '</span>' +
       '<span>' + esc(cur.topic) + '</span></div>' +
       '<div class="track"><i style="width:' + (idx / total * 100) + '%"></i></div></div>' +
       '<div class="card"><div class="meta">' +
       '<span class="chip t">' + QT[cur.qtype] + '</span>' +
       '<span class="chip">' + esc(cur.stage_label || '') + '</span>' +
-      '<span class="chip">大纲 ' + esc(cur.outline_ref || '') + '</span>' +
+      seenChip +
       (notesOf(cur.id).length ? '<span class="chip">疑问 ' + notesOf(cur.id).length + '</span>' : '') +
       '</div>' +
       '<div class="stem">' + cur.stem_html + '</div>' +
@@ -790,7 +922,24 @@ body{padding-bottom:78px}
     ta.value = localStorage.getItem(key) || '';
     ta.addEventListener('input', () => localStorage.setItem(key, ta.value));
     $('#reveal').addEventListener('click', () => {
-      $('#ref').innerHTML = '<div class="label">参考答案</div>' + cur.answer_html;
+      const past = attemptsOf(cur.id);
+      const ns = notesOf(cur.id);
+      let extra = '';
+      if (past.length) {
+        extra += '<div class="label">我之前的答案（' + past.length + ' 次）</div>';
+        extra += past.slice(-5).reverse().map(a =>
+          '<div class="tl-item"><div class="tl-h">' +
+          '<span class="pill ' + (a.grade === 2 ? 'ok' : a.grade === 1 ? 'mid' : 'no') + '">' +
+          GRADE[a.grade] + '</span>' +
+          '<span class="muted">' + new Date(a.ts).toLocaleString() + '</span></div>' +
+          '<div class="myans">' + (a.answer ? esc(a.answer) : '（没写文字）') + '</div></div>'
+        ).join('');
+      }
+      if (ns.length) {
+        extra += '<div class="label">这题的疑问（' + ns.length + '）</div>' +
+          ns.map(n => '<div class="note-item">' + esc(n.text) + '</div>').join('');
+      }
+      $('#ref').innerHTML = '<div class="label">参考答案</div>' + cur.answer_html + extra;
       $('#ref').classList.remove('hidden');
       $('#reveal').classList.add('hidden');
       $('#gbox').classList.remove('hidden');
@@ -1035,17 +1184,35 @@ body{padding-bottom:78px}
     if (name === 'home') {
       document.querySelectorAll('[data-mode=wrong]').forEach(a =>
         a.addEventListener('click', () => { location.hash = '#pick?mode=wrong'; }));
+      const rb = $('#doreview');
+      if (rb) rb.addEventListener('click', () => {
+        startSession(dueList().map(x => x.q));
+      });
     }
     if (name === 'pick') {
-      $('#go').addEventListener('click', () => startSession(pickQuestions()));
+      $('#go').addEventListener('click', () => {
+        if (!selCount()) { alert('先勾选要练的范围（模块、章、小节都可以）'); return; }
+        startSession(pickQuestions());
+      });
+      // 复选框：整组 / 单个 选中
+      document.querySelectorAll('.cbt[data-scope]').forEach(cb => {
+        cb.addEventListener('change', e => {
+          e.stopPropagation();
+          onScopeToggle(cb.dataset.scope, cb.checked);
+        });
+        cb.addEventListener('click', e => e.stopPropagation());
+      });
+      // 章标题：点空白处展开/收起（点复选框不触发）
       document.querySelectorAll('.acc-head').forEach(h => {
-        h.addEventListener('click', () => {
+        h.addEventListener('click', e => {
+          if (e.target.classList.contains('cbt')) return;
           const acc = h.parentElement;
           acc.classList.toggle('open');
           const k = acc.dataset.ch;
           if (acc.classList.contains('open')) openCh.add(k); else openCh.delete(k);
         });
       });
+      syncPickUI();
       const m = new URLSearchParams((location.hash.split('?')[1]) || '');
       if (m.get('mode') === 'wrong') {
         const r = document.querySelector('input[name=mode][value=wrong]');
