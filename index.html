@@ -230,20 +230,33 @@ body{display:flex;flex-direction:column;padding-bottom:0 !important}
 .wk-r{font-size:12px;color:var(--bad);font-weight:600;flex:0 0 40px;text-align:right;
   font-variant-numeric:tabular-nums}
 
-/* ---------- 答案标注（富文本） ---------- */
+/* ---------- 答案标注（富文本 + 浮动工具条） ---------- */
 .ans-edit{min-height:130px;border:1px solid var(--line);border-radius:12px;padding:12px;
   font:15px/1.7 inherit;background:#fff;outline:none;white-space:pre-wrap;word-break:break-word;
   -webkit-user-select:text;user-select:text}
 .ans-edit:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(47,111,237,.12)}
 .ans-edit:empty:before{content:attr(data-ph);color:#9aa1ab}
+.ans-hint{font-size:12px;color:var(--dim);margin:10px 0 6px}
 .myans.rich span{white-space:pre-wrap}
+
+/* 选中文字后浮出来的小工具条 */
+#selbar{position:fixed;z-index:60;display:none;align-items:center;gap:6px;
+  padding:6px 8px;background:#111827;border-radius:999px;
+  box-shadow:0 10px 28px rgba(0,0,0,.28);transform:translateX(-50%);
+  -webkit-user-select:none;user-select:none;touch-action:manipulation}
+#selbar.on{display:flex}
+#selbar button{border:0;background:transparent;padding:0;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;min-width:26px;min-height:26px}
+#selbar .c{width:22px;height:22px;border-radius:50%;border:2px solid rgba(255,255,255,.75);display:block}
+#selbar .c.hl{background:#fff3a3}
+#selbar .c.r{background:#dc2626}
+#selbar .c.g{background:#16a34a}
+#selbar .c.b{background:#2563eb}
+#selbar .clr{color:#e5e7eb;font-size:12.5px;padding:0 8px;line-height:26px}
+
 .pause{margin-left:auto;border:1px solid var(--line);background:#fff;border-radius:8px;
   padding:3px 9px;font-size:12px;color:var(--dim);cursor:pointer;line-height:1.6}
 .pause:active{background:#f1f5ff}
-.ans-tools{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:10px 0 6px}
-.ans-tools button{border:1px solid var(--line);background:#fff;border-radius:8px;
-  padding:4px 10px;font-size:12.5px;cursor:pointer;color:var(--text)}
-.ans-tools button:active{background:#f1f5ff}
 .ans-hl{background:#fff3a3;padding:0 2px;border-radius:3px}
 .ans-r{color:#dc2626}
 .ans-g{color:#16a34a}
@@ -1134,14 +1147,7 @@ body{display:flex;flex-direction:column;padding-bottom:0 !important}
       (notesOf(cur.id).length ? '<span class="chip">疑问 ' + notesOf(cur.id).length + '</span>' : '') +
       '</div>' +
       '<div class="stem">' + cur.stem_html + '</div>' +
-      '<div class="ans-tools">' +
-      '<span class="muted" style="margin-right:2px">标注：</span>' +
-      '<button type="button" data-mark="hl">黄底</button>' +
-      '<button type="button" data-mark="r">红</button>' +
-      '<button type="button" data-mark="g">绿</button>' +
-      '<button type="button" data-mark="b">蓝</button>' +
-      '<button type="button" data-mark="none">清除格式</button>' +
-      '</div>' +
+      '<div class="ans-hint">选中文字即可上色 · 黄底/红/绿/蓝</div>' +
       '<div id="ta" class="ans-edit" contenteditable="true" data-ph="写下你的答案（选中文字可加颜色/高亮）"></div>' +
       '<div class="grade" style="margin-top:10px"><button class="btn primary block" id="reveal">看参考答案</button></div>' +
       '<div id="ref" class="ref hidden"></div>' +
@@ -1153,11 +1159,66 @@ body{display:flex;flex-direction:column;padding-bottom:0 !important}
 
   const ANS_COLOR = { r: '#dc2626', g: '#16a34a', b: '#2563eb' };
 
+  /* ---------- 选中文字后的浮动工具条（桌面/手机同一套） ---------- */
+  function ensureSelBar() {
+    let bar = document.getElementById('selbar');
+    if (bar) return bar;
+    bar = document.createElement('div');
+    bar.id = 'selbar';
+    bar.innerHTML =
+      '<button type="button" data-mk="hl" title="黄底"><i class="c hl"></i></button>' +
+      '<button type="button" data-mk="r" title="红字"><i class="c r"></i></button>' +
+      '<button type="button" data-mk="g" title="绿字"><i class="c g"></i></button>' +
+      '<button type="button" data-mk="b" title="蓝字"><i class="c b"></i></button>' +
+      '<button type="button" data-mk="none" class="clr">清除</button>';
+    document.body.appendChild(bar);
+    // 关键：pointerdown / touchstart 阻止默认，点按钮时选区不会被收掉
+    bar.querySelectorAll('[data-mk]').forEach(btn => {
+      const keep = e => { e.preventDefault(); e.stopPropagation(); };
+      btn.addEventListener('pointerdown', keep);
+      btn.addEventListener('touchstart', keep, { passive: false });
+      btn.addEventListener('mousedown', keep);
+      btn.addEventListener('click', e => {
+        e.preventDefault();
+        applyAnsMark(btn.dataset.mk);
+      });
+    });
+    return bar;
+  }
+
+  function hideSelBar() {
+    const bar = document.getElementById('selbar');
+    if (bar) bar.classList.remove('on');
+  }
+
+  function updateSelBar() {
+    const bar = ensureSelBar();
+    const ta = document.getElementById('ta');
+    const sel = window.getSelection();
+    if (!ta || !sel || !sel.rangeCount || sel.isCollapsed) { hideSelBar(); return; }
+    const range = sel.getRangeAt(0);
+    if (!ta.contains(range.commonAncestorContainer)) { hideSelBar(); return; }
+    const txt = range.toString().trim();
+    if (!txt) { hideSelBar(); return; }
+
+    const r = range.getBoundingClientRect();
+    if (!r || (!r.width && !r.height)) { hideSelBar(); return; }
+
+    bar.classList.add('on');
+    const bw = bar.offsetWidth || 190, bh = bar.offsetHeight || 38;
+    let left = r.left + r.width / 2;
+    left = Math.max(bw / 2 + 8, Math.min(left, window.innerWidth - bw / 2 - 8));
+    let top = r.top - bh - 10;
+    if (top < 8) top = r.bottom + 10;                 // 上面放不下就放下面
+    if (top + bh > window.innerHeight - 8) top = window.innerHeight - bh - 8;
+    bar.style.left = left + 'px';
+    bar.style.top = top + 'px';
+  }
+
   // 富文本：直接给选中的文字加颜色/底色，输入框里看到的就是最终效果
   function applyAnsMark(kind) {
     const ta = document.getElementById('ta');
     if (!ta) return;
-    ta.focus();
     const sel = window.getSelection();
     if (!sel || !sel.rangeCount) return;
     const range = sel.getRangeAt(0);
@@ -1170,6 +1231,7 @@ body{display:flex;flex-direction:column;padding-bottom:0 !important}
       const tn = document.createTextNode(text);
       range.insertNode(tn);
       ta.dispatchEvent(new Event('input', { bubbles: true }));
+      hideSelBar();
       return;
     }
 
@@ -1187,6 +1249,7 @@ body{display:flex;flex-direction:column;padding-bottom:0 !important}
     r2.selectNodeContents(span);
     sel.addRange(r2);
     ta.dispatchEvent(new Event('input', { bubbles: true }));
+    updateSelBar();
   }
 
   function mountQuiz() {
@@ -1203,11 +1266,7 @@ body{display:flex;flex-direction:column;padding-bottom:0 !important}
 
     const saveDraft = () => localStorage.setItem(key, ta.innerHTML);
     ta.addEventListener('input', saveDraft);
-
-    document.querySelectorAll('[data-mark]').forEach(btn => {
-      btn.addEventListener('mousedown', e => e.preventDefault());   // 别让按钮抢走选区
-      btn.addEventListener('click', () => applyAnsMark(btn.dataset.mark));
-    });
+    ta.addEventListener('blur', () => setTimeout(hideSelBar, 120));
 
     const pauseBtn = $('#pauseBtn');
     if (pauseBtn) pauseBtn.addEventListener('click', () => {
@@ -1450,6 +1509,7 @@ body{display:flex;flex-direction:column;padding-bottom:0 !important}
                   notes: viewNotes, more: viewMore, quiz: viewQuiz };
 
   function route() {
+    hideSelBar();
     // hash 里可能带查询串（#pick?mode=wrong），页面名要先把 ? 之后切掉
     const raw = (location.hash || '#home').slice(1);
     const name = raw.split('?')[0];
@@ -1585,6 +1645,14 @@ body{display:flex;flex-direction:column;padding-bottom:0 !important}
       if (saved) session = saved;
     }
     route();
+    // 选区变化 → 决定浮动工具条显不显示（防抖，别每次移动都重排）
+    let selTimer = null;
+    document.addEventListener('selectionchange', () => {
+      if (selTimer) return;
+      selTimer = setTimeout(() => { selTimer = null; updateSelBar(); }, 80);
+    });
+    document.addEventListener('scroll', hideSelBar, true);
+    window.addEventListener('resize', hideSelBar);
     if ('serviceWorker' in navigator && location.protocol !== 'file:') {
       navigator.serviceWorker.register('./sw.js').catch(() => { });
     }
