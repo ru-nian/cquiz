@@ -230,7 +230,13 @@ body{display:flex;flex-direction:column;padding-bottom:0 !important}
 .wk-r{font-size:12px;color:var(--bad);font-weight:600;flex:0 0 40px;text-align:right;
   font-variant-numeric:tabular-nums}
 
-/* ---------- 答案标注 ---------- */
+/* ---------- 答案标注（富文本） ---------- */
+.ans-edit{min-height:130px;border:1px solid var(--line);border-radius:12px;padding:12px;
+  font:15px/1.7 inherit;background:#fff;outline:none;white-space:pre-wrap;word-break:break-word;
+  -webkit-user-select:text;user-select:text}
+.ans-edit:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(47,111,237,.12)}
+.ans-edit:empty:before{content:attr(data-ph);color:#9aa1ab}
+.myans.rich span{white-space:pre-wrap}
 .pause{margin-left:auto;border:1px solid var(--line);background:#fff;border-radius:8px;
   padding:3px 9px;font-size:12px;color:var(--dim);cursor:pointer;line-height:1.6}
 .pause:active{background:#f1f5ff}
@@ -238,9 +244,6 @@ body{display:flex;flex-direction:column;padding-bottom:0 !important}
 .ans-tools button{border:1px solid var(--line);background:#fff;border-radius:8px;
   padding:4px 10px;font-size:12.5px;cursor:pointer;color:var(--text)}
 .ans-tools button:active{background:#f1f5ff}
-.ans-preview{display:none;margin-top:6px;padding:8px 10px;border:1px dashed var(--line);
-  border-radius:9px;font-size:14px;line-height:1.6;white-space:pre-wrap;background:#fcfdff}
-.ans-preview.on{display:block}
 .ans-hl{background:#fff3a3;padding:0 2px;border-radius:3px}
 .ans-r{color:#dc2626}
 .ans-g{color:#16a34a}
@@ -370,7 +373,7 @@ body{display:flex;flex-direction:column;padding-bottom:0 !important}
   }
   function qById(id) { return BANK.find(q => q.id === id); }
 
-  // 答案里的标注：==文字== 黄底，[r]…[/r] 红，[g] 绿，[b] 蓝
+  // 老数据（纯文本，可能带 ==高亮== / [r]…[/r] 标记）渲染
   function answerRich(text) {
     let s = esc(text);
     s = s.replace(/\[([rgb])\]([\s\S]*?)\[\/\1\]/g, function (m, c, t) {
@@ -378,6 +381,47 @@ body{display:flex;flex-direction:column;padding-bottom:0 !important}
     });
     s = s.replace(/==([\s\S]*?)==/g, '<mark class="ans-hl">$1</mark>');
     return s;
+  }
+
+  // 富文本答案的白名单清洗：只留 span/br/div/b/i/u，样式只留 color 和 background-color
+  function sanitizeAnswerHtml(html) {
+    const box = document.createElement('div');
+    box.innerHTML = html;
+    const ALLOW = { SPAN: 1, BR: 1, DIV: 1, P: 1, B: 1, I: 1, U: 1, MARK: 1 };
+
+    function clean(node) {
+      const kids = Array.prototype.slice.call(node.childNodes);
+      kids.forEach(function (n) {
+        if (n.nodeType === 3) return;                 // 文本，保留
+        if (n.nodeType !== 1) { n.remove(); return; } // 注释等，丢掉
+        if (!ALLOW[n.tagName]) {                      // 不在白名单：拆掉外壳，保留内容
+          while (n.firstChild) node.insertBefore(n.firstChild, n);
+          node.removeChild(n);
+          return;
+        }
+        Array.prototype.slice.call(n.attributes).forEach(function (a) {
+          if (a.name === 'style') {
+            const keep = [];
+            if (n.style.color) keep.push('color:' + n.style.color);
+            if (n.style.backgroundColor) keep.push('background-color:' + n.style.backgroundColor);
+            if (keep.length) n.setAttribute('style', keep.join(';'));
+            else n.removeAttribute('style');
+          } else {
+            n.removeAttribute(a.name);
+          }
+        });
+        clean(n);
+      });
+    }
+    clean(box);
+    return box.innerHTML;
+  }
+
+  // 统一入口：新数据是 HTML，老数据是纯文本（可能带标记）
+  function answerView(raw) {
+    if (!raw) return '';
+    if (/<(span|br|div|p|b|i|u|mark)\b/i.test(raw)) return sanitizeAnswerHtml(raw);
+    return answerRich(raw);
   }
 
   /* ---------------- 未完成的练习（暂存） ---------------- */
@@ -845,7 +889,7 @@ body{display:flex;flex-direction:column;padding-bottom:0 !important}
             '<div class="tl-h"><span class="pill ' + c + '">' + GRADE[a.grade] + '</span>' +
             '<span class="muted">' + new Date(a.ts).toLocaleString() + '</span>' +
             '<span class="muted">#' + (i + 1) + '</span></div>' +
-            '<div class="myans rich">' + (a.answer ? answerRich(a.answer) : '（没写文字，直接自评）') + '</div>' +
+            '<div class="myans rich">' + (a.answer ? answerView(a.answer) : '（没写文字，直接自评）') + '</div>' +
             '</div>';
         }).join('') +
         '<div class="label">题干</div><div class="ansbox">' + q.stem_html + '</div>' +
@@ -1096,10 +1140,9 @@ body{display:flex;flex-direction:column;padding-bottom:0 !important}
       '<button type="button" data-mark="r">红</button>' +
       '<button type="button" data-mark="g">绿</button>' +
       '<button type="button" data-mark="b">蓝</button>' +
-      '<button type="button" data-mark="none">清除</button>' +
+      '<button type="button" data-mark="none">清除格式</button>' +
       '</div>' +
-      '<textarea id="ta" placeholder="写下你的答案（可用上面的颜色标注重点）"></textarea>' +
-      '<div id="ansprev" class="ans-preview"></div>' +
+      '<div id="ta" class="ans-edit" contenteditable="true" data-ph="写下你的答案（选中文字可加颜色/高亮）"></div>' +
       '<div class="grade" style="margin-top:10px"><button class="btn primary block" id="reveal">看参考答案</button></div>' +
       '<div id="ref" class="ref hidden"></div>' +
       '<div id="gbox" class="grade hidden"><div class="muted" style="margin-bottom:8px">对照答案，给自己判一下：</div>' +
@@ -1108,61 +1151,62 @@ body{display:flex;flex-direction:column;padding-bottom:0 !important}
       '<button class="btn good" data-g="2">对</button></div></div></div>';
   }
 
+  const ANS_COLOR = { r: '#dc2626', g: '#16a34a', b: '#2563eb' };
+
+  // 富文本：直接给选中的文字加颜色/底色，输入框里看到的就是最终效果
+  function applyAnsMark(kind) {
+    const ta = document.getElementById('ta');
+    if (!ta) return;
+    ta.focus();
+    const sel = window.getSelection();
+    if (!sel || !sel.rangeCount) return;
+    const range = sel.getRangeAt(0);
+    if (!ta.contains(range.commonAncestorContainer)) return;
+    if (range.collapsed) return;              // 没选中就不动
+
+    const text = range.toString();
+    if (kind === 'none') {                    // 清除：把这段还原成纯文本
+      range.deleteContents();
+      const tn = document.createTextNode(text);
+      range.insertNode(tn);
+      ta.dispatchEvent(new Event('input', { bubbles: true }));
+      return;
+    }
+
+    const span = document.createElement('span');
+    if (kind === 'hl') span.style.backgroundColor = '#fff3a3';
+    else span.style.color = ANS_COLOR[kind] || '#111';
+
+    try {
+      span.appendChild(range.extractContents());
+      range.insertNode(span);
+    } catch (e) { return; }
+
+    sel.removeAllRanges();
+    const r2 = document.createRange();
+    r2.selectNodeContents(span);
+    sel.addRange(r2);
+    ta.dispatchEvent(new Event('input', { bubbles: true }));
+  }
+
   function mountQuiz() {
     if (!session || session.pos >= session.queue.length) return;
     const key = 'draft.' + cur.id;
     const ta = $('#ta');
-    const prev = $('#ansprev');
-    ta.value = localStorage.getItem(key) || '';
 
-    const refreshPreview = () => {
-      const v = ta.value;
-      if (/\[[rgb]\]|==/.test(v)) {
-        prev.innerHTML = answerRich(v);
-        prev.classList.add('on');
-      } else {
-        prev.innerHTML = '';
-        prev.classList.remove('on');
-      }
-    };
-    ta.addEventListener('input', () => {
-      localStorage.setItem(key, ta.value);
-      refreshPreview();
-    });
-    refreshPreview();
+    // 草稿：新格式是 HTML，老草稿是纯文本，两种都要能读
+    const draft = localStorage.getItem(key) || '';
+    if (draft) {
+      if (/<(span|br|div|p|b|i|u|mark)\b/i.test(draft)) ta.innerHTML = sanitizeAnswerHtml(draft);
+      else ta.textContent = draft;
+    }
 
-    // 颜色标注：选中就包起来，没选就把光标放中间
+    const saveDraft = () => localStorage.setItem(key, ta.innerHTML);
+    ta.addEventListener('input', saveDraft);
+
     document.querySelectorAll('[data-mark]').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const m = btn.dataset.mark;
-        const s = ta.selectionStart, e = ta.selectionEnd;
-        const sel = ta.value.slice(s, e);
-        let open = '', close = '';
-        if (m === 'hl') { open = '=='; close = '=='; }
-        else if (m === 'r' || m === 'g' || m === 'b') { open = '[' + m + ']'; close = '[/' + m + ']'; }
-        else {                                   // 清除：把选中或整段里的标记去掉
-          const target = sel || ta.value;
-          const clean = target.replace(/\[[rgb]\]([\s\S]*?)\[\/[rgb]\]/g, '$1').replace(/==([\s\S]*?)==/g, '$1');
-          if (sel) {
-            ta.setRangeText(clean, s, e, 'end');
-          } else {
-            ta.value = clean;
-          }
-          localStorage.setItem(key, ta.value);
-          refreshPreview();
-          return;
-        }
-        const text = sel || '要点';
-        const ins = open + text + close;
-        ta.setRangeText(ins, s, e, 'end');
-        if (!sel) {
-          ta.selectionStart = s + open.length;
-          ta.selectionEnd = s + open.length + text.length;
-        }
-        ta.focus();
-        localStorage.setItem(key, ta.value);
-        refreshPreview();
-      });
+      btn.addEventListener('mousedown', e => e.preventDefault());   // 别让按钮抢走选区
+      btn.addEventListener('click', () => applyAnsMark(btn.dataset.mark));
     });
 
     const pauseBtn = $('#pauseBtn');
@@ -1182,7 +1226,7 @@ body{display:flex;flex-direction:column;padding-bottom:0 !important}
           '<span class="pill ' + (a.grade === 2 ? 'ok' : a.grade === 1 ? 'mid' : 'no') + '">' +
           GRADE[a.grade] + '</span>' +
           '<span class="muted">' + new Date(a.ts).toLocaleString() + '</span></div>' +
-          '<div class="myans rich">' + (a.answer ? answerRich(a.answer) : '（没写文字）') + '</div></div>'
+          '<div class="myans rich">' + (a.answer ? answerView(a.answer) : '（没写文字）') + '</div></div>'
         ).join('');
       }
       if (ns.length) {
@@ -1197,7 +1241,8 @@ body{display:flex;flex-direction:column;padding-bottom:0 !important}
     document.querySelectorAll('#gbox [data-g]').forEach(b => {
       b.addEventListener('click', () => {
         const grade = parseInt(b.dataset.g, 10);
-        const rec = { id: uid(), qid: cur.id, answer: ta.value, grade: grade, ts: Date.now() };
+        const html = ta.innerHTML;
+        const rec = { id: uid(), qid: cur.id, answer: (ta.textContent.trim() ? html : ''), grade: grade, ts: Date.now() };
         S.attempts.push(rec);
         save();
         if (cloudReady()) cloudPush([rec]).catch(() => { });   // 后台补传，失败不影响本机
