@@ -230,6 +230,23 @@ body{display:flex;flex-direction:column;padding-bottom:0 !important}
 .wk-r{font-size:12px;color:var(--bad);font-weight:600;flex:0 0 40px;text-align:right;
   font-variant-numeric:tabular-nums}
 
+/* ---------- 答案标注 ---------- */
+.pause{margin-left:auto;border:1px solid var(--line);background:#fff;border-radius:8px;
+  padding:3px 9px;font-size:12px;color:var(--dim);cursor:pointer;line-height:1.6}
+.pause:active{background:#f1f5ff}
+.ans-tools{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:10px 0 6px}
+.ans-tools button{border:1px solid var(--line);background:#fff;border-radius:8px;
+  padding:4px 10px;font-size:12.5px;cursor:pointer;color:var(--text)}
+.ans-tools button:active{background:#f1f5ff}
+.ans-preview{display:none;margin-top:6px;padding:8px 10px;border:1px dashed var(--line);
+  border-radius:9px;font-size:14px;line-height:1.6;white-space:pre-wrap;background:#fcfdff}
+.ans-preview.on{display:block}
+.ans-hl{background:#fff3a3;padding:0 2px;border-radius:3px}
+.ans-r{color:#dc2626}
+.ans-g{color:#16a34a}
+.ans-b{color:#2563eb}
+.card.cont{border-color:#c7d7fe;background:linear-gradient(180deg,#f7faff,#fff)}
+
 /* ---------- 历史：按题目归并 ---------- */
 .rec{padding:12px 2px;border-bottom:1px dashed #eef0f3}
 .rec:last-child{border-bottom:0}
@@ -255,6 +272,8 @@ body{display:flex;flex-direction:column;padding-bottom:0 !important}
 .progress{position:static!important;top:auto!important;background:transparent;
   padding:6px 0 2px;margin-bottom:6px}
 .phead{font-size:12.5px}
+.phead .muted{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  margin:0 8px;text-align:right}
 /* 判分栏也别粘着，避免和底部 tab 打架 */
 .grade{position:static!important;background:transparent;padding:10px 0 4px;margin-top:10px}
 .stem pre,.ref pre,.ansbox pre{font-size:12.5px;line-height:1.55;white-space:pre;
@@ -350,6 +369,41 @@ body{display:flex;flex-direction:column;padding-bottom:0 !important}
     return String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   }
   function qById(id) { return BANK.find(q => q.id === id); }
+
+  // 答案里的标注：==文字== 黄底，[r]…[/r] 红，[g] 绿，[b] 蓝
+  function answerRich(text) {
+    let s = esc(text);
+    s = s.replace(/\[([rgb])\]([\s\S]*?)\[\/\1\]/g, function (m, c, t) {
+      return '<span class="ans-' + c + '">' + t + '</span>';
+    });
+    s = s.replace(/==([\s\S]*?)==/g, '<mark class="ans-hl">$1</mark>');
+    return s;
+  }
+
+  /* ---------------- 未完成的练习（暂存） ---------------- */
+  const SESSION_KEY = 'cquiz.session.v1';
+
+  function saveSessionNow() {
+    if (!session) return;
+    if (session.pos >= session.queue.length) { clearSavedSession(); return; }
+    try {
+      localStorage.setItem(SESSION_KEY, JSON.stringify({
+        ids: session.queue.map(q => q.id), pos: session.pos, at: Date.now()
+      }));
+    } catch (e) { }
+  }
+  function clearSavedSession() {
+    try { localStorage.removeItem(SESSION_KEY); } catch (e) { }
+  }
+  function loadSavedSession() {
+    try {
+      const d = JSON.parse(localStorage.getItem(SESSION_KEY) || 'null');
+      if (!d || !Array.isArray(d.ids)) return null;
+      const qs = d.ids.map(qById).filter(Boolean);
+      if (!qs.length || d.pos >= qs.length) return null;
+      return { queue: qs, pos: d.pos, at: d.at };
+    } catch (e) { return null; }
+  }
 
   /* ---------------- 派生统计 ---------------- */
   function attemptsOf(qid) {
@@ -525,6 +579,17 @@ body{display:flex;flex-direction:column;padding-bottom:0 !important}
     startSession(list.slice(0, 20));
   }
 
+  function viewContinueCard() {
+    const saved = loadSavedSession();
+    if (!saved) return '';
+    return '<div class="card cont"><strong>有一轮练习没做完</strong>' +
+      '<p class="muted" style="margin:6px 0 0">已做 ' + saved.pos + ' / ' + saved.queue.length + ' 题' +
+      (saved.at ? '，上次 ' + new Date(saved.at).toLocaleString() : '') + '</p>' +
+      '<div class="row" style="margin-top:12px">' +
+      '<button class="btn primary" id="contbtn" type="button">继续</button>' +
+      '<button class="btn" id="dropbtn" type="button">放弃这轮</button></div></div>';
+  }
+
   function viewHome() {
     const o = overview();
     const due = dueList();
@@ -538,7 +603,7 @@ body{display:flex;flex-direction:column;padding-bottom:0 !important}
         '<p class="muted" style="margin:6px 0 0">继续练新题就好。' +
         (S.attempts.length ? '下一题到期时间会出现在这里。' : '') + '</p></div>';
 
-    return dueCard + viewForecastCard() + viewWeakCard() +
+    return viewContinueCard() + dueCard + viewForecastCard() + viewWeakCard() +
       '<div class="card"><h1>今天练点什么</h1>' +
       '<p class="muted">只有输出才算复习。</p>' +
       '<div class="row" style="margin-top:12px">' +
@@ -780,7 +845,7 @@ body{display:flex;flex-direction:column;padding-bottom:0 !important}
             '<div class="tl-h"><span class="pill ' + c + '">' + GRADE[a.grade] + '</span>' +
             '<span class="muted">' + new Date(a.ts).toLocaleString() + '</span>' +
             '<span class="muted">#' + (i + 1) + '</span></div>' +
-            '<div class="myans">' + (a.answer ? esc(a.answer) : '（没写文字，直接自评）') + '</div>' +
+            '<div class="myans rich">' + (a.answer ? answerRich(a.answer) : '（没写文字，直接自评）') + '</div>' +
             '</div>';
         }).join('') +
         '<div class="label">题干</div><div class="ansbox">' + q.stem_html + '</div>' +
@@ -995,11 +1060,14 @@ body{display:flex;flex-direction:column;padding-bottom:0 !important}
   function startSession(queue) {
     if (!queue.length) { alert('这个范围里没有题'); return; }
     session = { queue, pos: 0 };
+    clearSavedSession();
+    saveSessionNow();
     go('quiz');
   }
 
   function viewQuiz() {
     if (!session || session.pos >= session.queue.length) {
+      clearSavedSession();
       return '<div class="card"><h1>这一轮结束了</h1><p class="muted">记录已保存。</p>' +
         '<div class="row" style="margin-top:14px"><a class="btn primary" href="#pick">再来一轮</a>' +
         '<a class="btn" href="#wrong">看错题</a></div></div>';
@@ -1010,8 +1078,10 @@ body{display:flex;flex-direction:column;padding-bottom:0 !important}
     const seenChip = st.seen
       ? '<span class="chip">练过 ' + st.seen + ' 次 · 错 ' + st.wrong + ' 次</span>'
       : '<span class="chip">第一次做</span>';
-    return '<div class="progress"><div class="phead"><span><b>' + idx + '</b> / ' + total + '</span>' +
-      '<span>' + esc(cur.topic) + '</span></div>' +
+    return '<div class="progress"><div class="phead">' +
+      '<span><b>' + idx + '</b> / ' + total + '</span>' +
+      '<span class="muted">' + esc(cur.topic) + '</span>' +
+      '<button class="pause" id="pauseBtn" type="button">保存退出</button></div>' +
       '<div class="track"><i style="width:' + (idx / total * 100) + '%"></i></div></div>' +
       '<div class="card"><div class="meta">' +
       '<span class="chip t">' + QT[cur.qtype] + '</span>' +
@@ -1020,7 +1090,16 @@ body{display:flex;flex-direction:column;padding-bottom:0 !important}
       (notesOf(cur.id).length ? '<span class="chip">疑问 ' + notesOf(cur.id).length + '</span>' : '') +
       '</div>' +
       '<div class="stem">' + cur.stem_html + '</div>' +
-      '<textarea id="ta" placeholder="写下你的答案（写多少算多少，写完对答案自评）"></textarea>' +
+      '<div class="ans-tools">' +
+      '<span class="muted" style="margin-right:2px">标注：</span>' +
+      '<button type="button" data-mark="hl">黄底</button>' +
+      '<button type="button" data-mark="r">红</button>' +
+      '<button type="button" data-mark="g">绿</button>' +
+      '<button type="button" data-mark="b">蓝</button>' +
+      '<button type="button" data-mark="none">清除</button>' +
+      '</div>' +
+      '<textarea id="ta" placeholder="写下你的答案（可用上面的颜色标注重点）"></textarea>' +
+      '<div id="ansprev" class="ans-preview"></div>' +
       '<div class="grade" style="margin-top:10px"><button class="btn primary block" id="reveal">看参考答案</button></div>' +
       '<div id="ref" class="ref hidden"></div>' +
       '<div id="gbox" class="grade hidden"><div class="muted" style="margin-bottom:8px">对照答案，给自己判一下：</div>' +
@@ -1033,8 +1112,65 @@ body{display:flex;flex-direction:column;padding-bottom:0 !important}
     if (!session || session.pos >= session.queue.length) return;
     const key = 'draft.' + cur.id;
     const ta = $('#ta');
+    const prev = $('#ansprev');
     ta.value = localStorage.getItem(key) || '';
-    ta.addEventListener('input', () => localStorage.setItem(key, ta.value));
+
+    const refreshPreview = () => {
+      const v = ta.value;
+      if (/\[[rgb]\]|==/.test(v)) {
+        prev.innerHTML = answerRich(v);
+        prev.classList.add('on');
+      } else {
+        prev.innerHTML = '';
+        prev.classList.remove('on');
+      }
+    };
+    ta.addEventListener('input', () => {
+      localStorage.setItem(key, ta.value);
+      refreshPreview();
+    });
+    refreshPreview();
+
+    // 颜色标注：选中就包起来，没选就把光标放中间
+    document.querySelectorAll('[data-mark]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const m = btn.dataset.mark;
+        const s = ta.selectionStart, e = ta.selectionEnd;
+        const sel = ta.value.slice(s, e);
+        let open = '', close = '';
+        if (m === 'hl') { open = '=='; close = '=='; }
+        else if (m === 'r' || m === 'g' || m === 'b') { open = '[' + m + ']'; close = '[/' + m + ']'; }
+        else {                                   // 清除：把选中或整段里的标记去掉
+          const target = sel || ta.value;
+          const clean = target.replace(/\[[rgb]\]([\s\S]*?)\[\/[rgb]\]/g, '$1').replace(/==([\s\S]*?)==/g, '$1');
+          if (sel) {
+            ta.setRangeText(clean, s, e, 'end');
+          } else {
+            ta.value = clean;
+          }
+          localStorage.setItem(key, ta.value);
+          refreshPreview();
+          return;
+        }
+        const text = sel || '要点';
+        const ins = open + text + close;
+        ta.setRangeText(ins, s, e, 'end');
+        if (!sel) {
+          ta.selectionStart = s + open.length;
+          ta.selectionEnd = s + open.length + text.length;
+        }
+        ta.focus();
+        localStorage.setItem(key, ta.value);
+        refreshPreview();
+      });
+    });
+
+    const pauseBtn = $('#pauseBtn');
+    if (pauseBtn) pauseBtn.addEventListener('click', () => {
+      saveSessionNow();
+      location.hash = '#home';
+    });
+
     $('#reveal').addEventListener('click', () => {
       const past = attemptsOf(cur.id);
       const ns = notesOf(cur.id);
@@ -1046,7 +1182,7 @@ body{display:flex;flex-direction:column;padding-bottom:0 !important}
           '<span class="pill ' + (a.grade === 2 ? 'ok' : a.grade === 1 ? 'mid' : 'no') + '">' +
           GRADE[a.grade] + '</span>' +
           '<span class="muted">' + new Date(a.ts).toLocaleString() + '</span></div>' +
-          '<div class="myans">' + (a.answer ? esc(a.answer) : '（没写文字）') + '</div></div>'
+          '<div class="myans rich">' + (a.answer ? answerRich(a.answer) : '（没写文字）') + '</div></div>'
         ).join('');
       }
       if (ns.length) {
@@ -1067,6 +1203,7 @@ body{display:flex;flex-direction:column;padding-bottom:0 !important}
         if (cloudReady()) cloudPush([rec]).catch(() => { });   // 后台补传，失败不影响本机
         localStorage.removeItem(key);
         session.pos++;
+        saveSessionNow();
         go('quiz');
       });
     });
@@ -1310,6 +1447,20 @@ body{display:flex;flex-direction:column;padding-bottom:0 !important}
       document.querySelectorAll('.wk-row').forEach(row => {
         row.addEventListener('click', () => startTopic(row.dataset.topic));
       });
+      const contBtn = $('#contbtn');
+      if (contBtn) contBtn.addEventListener('click', () => {
+        const saved = loadSavedSession();
+        if (!saved) { route(); return; }
+        session = saved;
+        go('quiz');
+      });
+      const dropBtn = $('#dropbtn');
+      if (dropBtn) dropBtn.addEventListener('click', () => {
+        if (!confirm('放弃这一轮？已作答的题会保留，只是不再继续这个队列。')) return;
+        clearSavedSession();
+        session = null;
+        route();
+      });
     }
     if (name === 'pick') {
       $('#go').addEventListener('click', () => {
@@ -1382,6 +1533,11 @@ body{display:flex;flex-direction:column;padding-bottom:0 !important}
       const i = Math.max(0, Math.min(parseInt(st[1], 10) - 1, BANK.length - 1));
       session = { queue: BANK.slice(i, i + 3), pos: 0 };
       location.hash = '#quiz';
+    }
+    // 直接打开 #quiz（比如刷新页面）时，把上次没做完的那一轮接回来
+    if (!session && location.hash.indexOf('#quiz') === 0) {
+      const saved = loadSavedSession();
+      if (saved) session = saved;
     }
     route();
     if ('serviceWorker' in navigator && location.protocol !== 'file:') {
