@@ -230,13 +230,36 @@ body{display:flex;flex-direction:column;padding-bottom:0 !important}
 .wk-r{font-size:12px;color:var(--bad);font-weight:600;flex:0 0 40px;text-align:right;
   font-variant-numeric:tabular-nums}
 
-/* ---------- 答案标注（富文本 + 浮动工具条） ---------- */
+/* ---------- 答案标注（写 / 标注 两种模式） ---------- */
+.mode-tabs{display:inline-flex;background:#eef2f7;border-radius:10px;padding:3px;gap:2px;margin:10px 0 8px}
+.mode-tabs button{border:0;background:transparent;padding:5px 16px;font-size:13px;
+  border-radius:8px;cursor:pointer;color:var(--dim)}
+.mode-tabs button.on{background:#fff;color:var(--text);font-weight:600;
+  box-shadow:0 1px 3px rgba(16,24,40,.12)}
+.sentbox{margin-top:2px}
+.sent{display:flex;align-items:flex-start;gap:8px;padding:9px 10px;border:1px solid var(--line);
+  border-radius:10px;margin-bottom:6px;background:#fff}
+.sent.brk{padding:4px 10px;background:#fafbfc}
+.sent-t{flex:1;min-width:0;font-size:14.5px;line-height:1.65;
+  white-space:pre-wrap;word-break:break-word}
+.sent-dots{display:flex;gap:5px;flex:0 0 auto;align-items:center;padding-top:2px}
+.sent-dots .d{width:20px;height:20px;border-radius:50%;padding:0;cursor:pointer;
+  border:1px solid rgba(15,23,42,.14);display:flex;align-items:center;justify-content:center}
+.d.hl{background:#ffe066}
+.d.r{background:#dc2626}
+.d.g{background:#16a34a}
+.d.b{background:#2563eb}
+.d.none{background:#fff;color:#94a3b8;font-size:11px;line-height:1}
+.d.none:after{content:'✕'}
+.sent-dots .d:active{transform:scale(.92)}
+
 .ans-edit{min-height:130px;border:1px solid var(--line);border-radius:12px;padding:12px;
   font:15px/1.7 inherit;background:#fff;outline:none;white-space:pre-wrap;word-break:break-word;
   -webkit-user-select:text;user-select:text}
 .ans-edit:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(47,111,237,.12)}
 .ans-edit:empty:before{content:attr(data-ph);color:#9aa1ab}
-.ans-hint{font-size:12px;color:var(--dim);margin:10px 0 6px}
+.ans-edit.hidden{display:none}
+.sentbox.hidden{display:none}
 .myans.rich span{white-space:pre-wrap}
 
 /* 选中文字后浮出来的小工具条 */
@@ -1147,8 +1170,11 @@ body{display:flex;flex-direction:column;padding-bottom:0 !important}
       (notesOf(cur.id).length ? '<span class="chip">疑问 ' + notesOf(cur.id).length + '</span>' : '') +
       '</div>' +
       '<div class="stem">' + cur.stem_html + '</div>' +
-      '<div class="ans-hint">选中文字即可上色 · 黄底/红/绿/蓝</div>' +
-      '<div id="ta" class="ans-edit" contenteditable="true" data-ph="写下你的答案（选中文字可加颜色/高亮）"></div>' +
+      '<div class="mode-tabs" id="modeTabs">' +
+      '<button type="button" data-tab="write" class="on">写</button>' +
+      '<button type="button" data-tab="mark">标注</button></div>' +
+      '<div id="ta" class="ans-edit" contenteditable="true" data-ph="写下你的答案（写完后点「标注」按句上色）"></div>' +
+      '<div id="sentbox" class="sentbox hidden"></div>' +
       '<div class="grade" style="margin-top:10px"><button class="btn primary block" id="reveal">看参考答案</button></div>' +
       '<div id="ref" class="ref hidden"></div>' +
       '<div id="gbox" class="grade hidden"><div class="muted" style="margin-bottom:8px">对照答案，给自己判一下：</div>' +
@@ -1158,6 +1184,76 @@ body{display:flex;flex-direction:column;padding-bottom:0 !important}
   }
 
   const ANS_COLOR = { r: '#dc2626', g: '#16a34a', b: '#2563eb' };
+  const ANS_HL = '#fff3a3';
+
+  /* ---------- 按句上色：手机不用选中文字 ---------- */
+  // HTML → 句子数组（每句带上它继承的颜色/底纹）
+  function htmlToSentences(html) {
+    const box = document.createElement('div');
+    box.innerHTML = html;
+    const out = [];
+    const DELIM = /([。！？；!?;\n])/;
+
+    function pushText(txt, st) {
+      const pieces = txt.split(DELIM);
+      let buf = '';
+      for (let i = 0; i < pieces.length; i++) {
+        const p = pieces[i];
+        if (p.length === 1 && DELIM.test(p)) {
+          buf += p;
+          if (buf.trim()) out.push({ text: buf, color: st.color || '', hl: st.hl || '' });
+          buf = '';
+        } else {
+          buf += p;
+        }
+      }
+      if (buf.trim()) out.push({ text: buf, color: st.color || '', hl: st.hl || '' });
+    }
+
+    function walk(node, st) {
+      Array.prototype.slice.call(node.childNodes).forEach(function (n) {
+        if (n.nodeType === 3) {
+          pushText(n.nodeValue, st);
+        } else if (n.nodeType === 1) {
+          if (n.tagName === 'BR') {
+            if (out.length) out[out.length - 1].text += '\n';
+            else out.push({ text: '\n', color: '', hl: '' });
+            return;
+          }
+          walk(n, {
+            color: (n.style && n.style.color) ? n.style.color : st.color,
+            hl: (n.style && n.style.backgroundColor) ? n.style.backgroundColor : st.hl
+          });
+        }
+      });
+    }
+    walk(box, { color: '', hl: '' });
+    return out;
+  }
+
+  function sentencesToHtml(list) {
+    return list.map(function (s) {
+      if (!s.text) return '';
+      const st = [];
+      if (s.color) st.push('color:' + s.color);
+      if (s.hl) st.push('background-color:' + s.hl);
+      const t = (s.text === '\n') ? '<br>' : esc(s.text).replace(/\n/g, '<br>');
+      return st.length ? '<span style="' + st.join(';') + '">' + t + '</span>' : t;
+    }).join('');
+  }
+
+  // 把某段文字外层带颜色的 span 拆掉（清除格式的关键）
+  function unwrapColorAround(node, root) {
+    let el = node.parentNode;
+    while (el && el !== root) {
+      const parent = el.parentNode;
+      if (el.style && (el.style.color || el.style.backgroundColor)) {
+        while (el.firstChild) parent.insertBefore(el.firstChild, el);
+        parent.removeChild(el);
+      }
+      el = parent;
+    }
+  }
 
   /* ---------- 选中文字后的浮动工具条（桌面/手机同一套） ---------- */
   function ensureSelBar() {
@@ -1226,10 +1322,11 @@ body{display:flex;flex-direction:column;padding-bottom:0 !important}
     if (range.collapsed) return;              // 没选中就不动
 
     const text = range.toString();
-    if (kind === 'none') {                    // 清除：把这段还原成纯文本
+    if (kind === 'none') {                    // 清除：整段还原成纯文本，并拆掉外层颜色
       range.deleteContents();
       const tn = document.createTextNode(text);
       range.insertNode(tn);
+      unwrapColorAround(tn, ta);
       ta.dispatchEvent(new Event('input', { bubbles: true }));
       hideSelBar();
       return;
@@ -1267,6 +1364,72 @@ body{display:flex;flex-direction:column;padding-bottom:0 !important}
     const saveDraft = () => localStorage.setItem(key, ta.innerHTML);
     ta.addEventListener('input', saveDraft);
     ta.addEventListener('blur', () => setTimeout(hideSelBar, 120));
+
+    /* ---- 写 / 标注 两种模式 ---- */
+    const sentbox = $('#sentbox');
+    let sentences = [];
+
+    function renderSentences() {
+      if (!sentences.length) {
+        sentbox.innerHTML = '<p class="muted" style="margin:6px 2px">还没有内容。先点「写」写几句，再回来标注。</p>';
+        return;
+      }
+      sentbox.innerHTML = sentences.map(function (s, i) {
+        if (!s.text.trim() && s.text !== '\n') return '';
+        const label = (s.text === '\n') ? '⏎' : s.text;
+        const st = (s.color ? 'color:' + s.color + ';' : '') +
+          (s.hl ? 'background-color:' + s.hl + ';' : '');
+        return '<div class="sent" data-i="' + i + '">' +
+          '<span class="sent-t" style="' + st + '">' + esc(label) + '</span>' +
+          '<span class="sent-dots">' +
+          '<button class="d hl" data-i="' + i + '" data-k="hl" title="黄底"></button>' +
+          '<button class="d r" data-i="' + i + '" data-k="r" title="红字"></button>' +
+          '<button class="d g" data-i="' + i + '" data-k="g" title="绿字"></button>' +
+          '<button class="d b" data-i="' + i + '" data-k="b" title="蓝字"></button>' +
+          '<button class="d none" data-i="' + i + '" data-k="none" title="清除"></button>' +
+          '</span></div>';
+      }).join('');
+    }
+
+    sentbox.addEventListener('click', function (e) {
+      const btn = e.target.closest('[data-k]');
+      if (!btn) return;
+      e.preventDefault();
+      const i = parseInt(btn.dataset.i, 10);
+      const k = btn.dataset.k;
+      const s = sentences[i];
+      if (!s) return;
+      if (k === 'none') { s.color = ''; s.hl = ''; }
+      else if (k === 'hl') { s.hl = ANS_HL; s.color = ''; }
+      else { s.color = ANS_COLOR[k] || ''; s.hl = ''; }
+      ta.innerHTML = sentencesToHtml(sentences);
+      saveDraft();
+      renderSentences();
+    });
+
+    let mode = 'write';
+    function setTab(tab) {
+      if (tab === mode) return;
+      document.querySelectorAll('#modeTabs [data-tab]').forEach(b =>
+        b.classList.toggle('on', b.dataset.tab === tab));
+      if (tab === 'mark') {
+        sentences = htmlToSentences(ta.innerHTML);
+        hideSelBar();
+        ta.classList.add('hidden');
+        sentbox.classList.remove('hidden');
+        renderSentences();
+      } else {
+        ta.innerHTML = sentencesToHtml(sentences);
+        saveDraft();
+        sentbox.classList.add('hidden');
+        ta.classList.remove('hidden');
+      }
+      mode = tab;
+    }
+
+    document.querySelectorAll('#modeTabs [data-tab]').forEach(b => {
+      b.addEventListener('click', () => setTab(b.dataset.tab));
+    });
 
     const pauseBtn = $('#pauseBtn');
     if (pauseBtn) pauseBtn.addEventListener('click', () => {
