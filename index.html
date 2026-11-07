@@ -182,32 +182,35 @@ body{display:flex;flex-direction:column;padding-bottom:0 !important}
   .fab{bottom:120px}
 }
 
-/* ---------- 折叠目录（练习范围） ---------- */
-.mod-row{display:flex;align-items:center;gap:8px;margin:16px 2px 4px;cursor:pointer;
+/* ---------- 折叠目录（练习范围）----------
+   字号层级：全部 16 > 模块 15 > 章 14 > 小节 13.5，越往下越细、越浅 */
+.mod-row{display:flex;align-items:center;gap:8px;margin:20px 2px 2px;cursor:pointer;
   -webkit-user-select:none;user-select:none}
 .mod-row .mod{margin:0;flex:1}
 .mod-chev{font-size:10px;color:var(--dim);width:10px;transition:transform .15s}
 .mod-chev.open{transform:rotate(90deg)}
-.mod-row .num{flex:0 0 26px;text-align:right;color:var(--dim);font-size:12.5px;
+.mod-row .num{flex:0 0 30px;text-align:right;color:var(--dim);font-size:12px;
   font-variant-numeric:tabular-nums}
-.mod{font-size:12px;color:var(--dim);letter-spacing:1.5px;font-weight:700}
+.mod{font-size:15px;color:var(--text);letter-spacing:0;font-weight:700}
 .cbt{width:16px;height:16px;flex:0 0 auto;accent-color:var(--accent)}
-.leaf.all{border-bottom:1px solid #eceef1;padding-left:2px;font-weight:600}
+.leaf.all{border-bottom:1px solid #eceef1;padding-left:2px}
+.leaf.all .leaf-t{font-size:16px;font-weight:700;color:var(--text)}
 .acc{border:0;background:transparent;margin:0}
-.acc-head{display:flex;align-items:center;gap:8px;width:100%;padding:11px 2px;
+.acc-head{display:flex;align-items:center;gap:8px;width:100%;padding:11px 2px 11px 14px;
   border-bottom:1px solid #eceef1;background:transparent;
-  font:15px/1.5 inherit;font-weight:600;color:var(--text);cursor:pointer;text-align:left}
+  font-size:14px;line-height:1.5;font-family:inherit;font-weight:600;color:#374151;
+  cursor:pointer;text-align:left}
 .acc-head .acc-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .acc-head .chev{display:inline-block;color:var(--dim);transition:transform .22s ease;font-size:11px}
 .acc.open .acc-head .chev{transform:rotate(90deg)}
 .acc-body{max-height:0;overflow:hidden;transition:max-height .26s ease}
 .acc.open .acc-body{max-height:1600px}
-.leaf{display:flex;align-items:center;gap:8px;padding:10px 2px 10px 18px;
-  border-bottom:1px dashed #f1f2f4;font-size:14.5px;color:var(--text);cursor:pointer}
+.leaf{display:flex;align-items:center;gap:8px;padding:9px 2px 9px 34px;
+  border-bottom:1px dashed #f1f2f4;font-size:13.5px;color:#4b5563;cursor:pointer}
 .leaf:last-child{border-bottom:0}
 .leaf input{margin:0;flex:0 0 auto}
 .leaf-t{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.num{flex:0 0 30px;text-align:right;color:var(--dim);font-size:12.5px;
+.num{flex:0 0 30px;text-align:right;color:var(--dim);font-size:12px;
   font-variant-numeric:tabular-nums;padding-right:2px}
 .mk{flex:0 0 14px;display:flex;align-items:center;justify-content:center}
 .dot{display:inline-block;width:8px;height:8px;border-radius:50%}
@@ -238,7 +241,8 @@ body{display:flex;flex-direction:column;padding-bottom:0 !important}
 
 /* ---------- 答案编辑 + 颜色笔 ---------- */
 .ans-edit{min-height:130px;border:1px solid var(--line);border-radius:12px;padding:12px;
-  font:15px/1.7 inherit;background:#fff;outline:none;white-space:pre-wrap;word-break:break-word;
+  font-size:15px;line-height:1.7;font-family:inherit;background:#fff;outline:none;
+  white-space:pre-wrap;word-break:break-word;
   -webkit-user-select:text;user-select:text}
 .ans-edit:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(47,111,237,.12)}
 .ans-edit:empty:before{content:attr(data-ph);color:#9aa1ab}
@@ -330,7 +334,8 @@ body{display:flex;flex-direction:column;padding-bottom:0 !important}
 .note-panel.open{opacity:1;transform:none;pointer-events:auto}
 .note-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
 .note-head b{font-size:15px}
-.note-x{border:0;background:none;color:var(--dim);cursor:pointer;font:13px inherit;padding:4px 6px}
+.note-x{border:0;background:none;color:var(--dim);cursor:pointer;font-size:13px;
+  font-family:inherit;padding:4px 6px}
 .note-list{max-height:150px;overflow:auto;margin-top:10px}
 .note-item{background:#f8fafc;border:1px solid var(--line);border-radius:9px;padding:7px 9px;
   font-size:13px;line-height:1.55;margin-bottom:6px;white-space:pre-wrap}
