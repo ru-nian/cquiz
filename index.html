@@ -183,8 +183,11 @@ body{display:flex;flex-direction:column;padding-bottom:0 !important}
 }
 
 /* ---------- 折叠目录（练习范围） ---------- */
-.mod-row{display:flex;align-items:center;gap:8px;margin:16px 2px 4px}
+.mod-row{display:flex;align-items:center;gap:8px;margin:16px 2px 4px;cursor:pointer;
+  -webkit-user-select:none;user-select:none}
 .mod-row .mod{margin:0;flex:1}
+.mod-chev{font-size:10px;color:var(--dim);width:10px;transition:transform .15s}
+.mod-chev.open{transform:rotate(90deg)}
 .mod-row .num{flex:0 0 26px;text-align:right;color:var(--dim);font-size:12.5px;
   font-variant-numeric:tabular-nums}
 .mod{font-size:12px;color:var(--dim);letter-spacing:1.5px;font-weight:700}
@@ -218,6 +221,9 @@ body{display:flex;flex-direction:column;padding-bottom:0 !important}
 .fc-n{font-size:11px;color:var(--dim);margin-bottom:4px;font-variant-numeric:tabular-nums}
 .fc-bar{display:block;width:100%;background:#dbeafe;border-radius:5px 5px 0 0;min-height:2px}
 .fc-lb{font-size:10.5px;color:var(--dim);margin-top:5px;white-space:nowrap}
+.spread{margin-top:12px;padding-top:10px;border-top:1px dashed #eef0f3}
+.spread-msg{margin:8px 0 0;font-size:12.5px;color:var(--accent);line-height:1.6}
+.btn.tiny{padding:5px 12px;font-size:12.5px;flex:0 0 auto}
 
 /* ---------- 薄弱点排行 ---------- */
 .wk{margin-top:8px}
@@ -230,52 +236,30 @@ body{display:flex;flex-direction:column;padding-bottom:0 !important}
 .wk-r{font-size:12px;color:var(--bad);font-weight:600;flex:0 0 40px;text-align:right;
   font-variant-numeric:tabular-nums}
 
-/* ---------- 答案标注（写 / 标注 两种模式） ---------- */
-.mode-tabs{display:inline-flex;background:#eef2f7;border-radius:10px;padding:3px;gap:2px;margin:10px 0 8px}
-.mode-tabs button{border:0;background:transparent;padding:5px 16px;font-size:13px;
-  border-radius:8px;cursor:pointer;color:var(--dim)}
-.mode-tabs button.on{background:#fff;color:var(--text);font-weight:600;
-  box-shadow:0 1px 3px rgba(16,24,40,.12)}
-.sentbox{margin-top:2px}
-.sent{display:flex;align-items:flex-start;gap:8px;padding:9px 10px;border:1px solid var(--line);
-  border-radius:10px;margin-bottom:6px;background:#fff}
-.sent.brk{padding:4px 10px;background:#fafbfc}
-.sent-t{flex:1;min-width:0;font-size:14.5px;line-height:1.65;
-  white-space:pre-wrap;word-break:break-word}
-.sent-dots{display:flex;gap:5px;flex:0 0 auto;align-items:center;padding-top:2px}
-.sent-dots .d{width:20px;height:20px;border-radius:50%;padding:0;cursor:pointer;
-  border:1px solid rgba(15,23,42,.14);display:flex;align-items:center;justify-content:center}
-.d.hl{background:#ffe066}
-.d.r{background:#dc2626}
-.d.g{background:#16a34a}
-.d.b{background:#2563eb}
-.d.none{background:#fff;color:#94a3b8;font-size:11px;line-height:1}
-.d.none:after{content:'✕'}
-.sent-dots .d:active{transform:scale(.92)}
-
+/* ---------- 答案编辑 + 颜色笔 ---------- */
 .ans-edit{min-height:130px;border:1px solid var(--line);border-radius:12px;padding:12px;
   font:15px/1.7 inherit;background:#fff;outline:none;white-space:pre-wrap;word-break:break-word;
   -webkit-user-select:text;user-select:text}
 .ans-edit:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(47,111,237,.12)}
 .ans-edit:empty:before{content:attr(data-ph);color:#9aa1ab}
-.ans-edit.hidden{display:none}
-.sentbox.hidden{display:none}
 .myans.rich span{white-space:pre-wrap}
 
-/* 选中文字后浮出来的小工具条 */
-#selbar{position:fixed;z-index:60;display:none;align-items:center;gap:6px;
-  padding:6px 8px;background:#111827;border-radius:999px;
-  box-shadow:0 10px 28px rgba(0,0,0,.28);transform:translateX(-50%);
-  -webkit-user-select:none;user-select:none;touch-action:manipulation}
-#selbar.on{display:flex}
-#selbar button{border:0;background:transparent;padding:0;cursor:pointer;
-  display:flex;align-items:center;justify-content:center;min-width:26px;min-height:26px}
-#selbar .c{width:22px;height:22px;border-radius:50%;border:2px solid rgba(255,255,255,.75);display:block}
-#selbar .c.hl{background:#fff3a3}
-#selbar .c.r{background:#dc2626}
-#selbar .c.g{background:#16a34a}
-#selbar .c.b{background:#2563eb}
-#selbar .clr{color:#e5e7eb;font-size:12.5px;padding:0 8px;line-height:26px}
+/* 颜色笔：点一下换笔色，之后打的字就是这个颜色 */
+.penbar{display:flex;align-items:center;gap:6px;margin-top:8px;padding:6px 10px;
+  border:1px solid var(--line);border-radius:12px;background:#fbfcfe}
+.pen-lab{font-size:12px;color:var(--dim);margin-right:2px}
+.penbar .pk{border:0;background:transparent;padding:0;cursor:pointer;width:28px;height:28px;
+  display:flex;align-items:center;justify-content:center;border-radius:50%}
+.penbar .pk .c{width:20px;height:20px;border-radius:50%;display:block;
+  border:1px solid rgba(15,23,42,.16)}
+.penbar .pk .c.hl{background:#ffe066}
+.penbar .pk .c.r{background:#dc2626}
+.penbar .pk .c.g{background:#16a34a}
+.penbar .pk .c.b{background:#2563eb}
+.penbar .pk.on{box-shadow:0 0 0 2px var(--accent)}
+.penbar .clr{width:auto;height:26px;padding:0 10px;margin-left:auto;font-size:12.5px;
+  color:var(--dim);border:1px solid var(--line);border-radius:8px;background:#fff}
+.penbar .clr.on{color:var(--text);border-color:var(--text)}
 
 .pause{margin-left:auto;border:1px solid var(--line);background:#fff;border-radius:8px;
   padding:3px 9px;font-size:12px;color:var(--dim);cursor:pointer;line-height:1.6}
@@ -550,6 +534,14 @@ body{display:flex;flex-direction:column;padding-bottom:0 !important}
   const SRS_DAYS = [1, 2, 4, 7, 15, 30];
   const DAY = 86400000;
 
+  /* 手动推迟到期时间（重新分配用，不改作答记录）：{ qid: 推迟到的时间戳 } */
+  const SHIFT_KEY = 'cquiz.srs.shift.v1';
+  function loadShift() {
+    try { return JSON.parse(localStorage.getItem(SHIFT_KEY) || '{}') || {}; } catch (e) { return {}; }
+  }
+  function saveShift(o) { localStorage.setItem(SHIFT_KEY, JSON.stringify(o)); }
+  function shiftOf(qid) { return Number(loadShift()[qid]) || 0; }
+
   function dueInfo(qid) {
     const list = attemptsOf(qid);
     if (!list.length) return null;
@@ -559,10 +551,13 @@ body{display:flex;flex-direction:column;padding-bottom:0 !important}
     }
     const stage = Math.min(streak, SRS_DAYS.length - 1);
     const last = list[list.length - 1];
+    const natural = last.ts + SRS_DAYS[stage] * DAY;
+    const ov = shiftOf(qid);
     return {
       stage: stage,
       days: SRS_DAYS[stage],
-      due: last.ts + SRS_DAYS[stage] * DAY,
+      natural: natural,
+      due: ov ? Math.max(natural, ov) : natural,
       last: last,
       wrong: list.filter(a => a.grade < 2).length,
       total: list.length
@@ -601,6 +596,26 @@ body{display:flex;flex-direction:column;padding-bottom:0 !important}
     return buckets;
   }
 
+  // 把当前所有到期的题重新摊到未来 N 天
+  let spreadMsg = '';
+  function applySpread(days) {
+    const list = dueList();
+    if (list.length < 2) return 0;
+    const shift = loadShift();
+    const start = new Date();
+    start.setHours(0, 0, 0, 0);
+    const base = start.getTime();
+    list.forEach(function (item, i) {
+      const q = item.q;
+      const dayIdx = i % days;                                   // 交错摊到第 0..days-1 天
+      const target = base + (dayIdx + 1) * DAY - 1000;           // 当天 23:59:59
+      if (target > item.d.natural) shift[q.id] = target;         // 只会往后推，不提前
+      else delete shift[q.id];
+    });
+    saveShift(shift);
+    return list.length;
+  }
+
   // 薄弱点：按「错题次数」排，其次按错误率。只统计练过的。
   function weakTopics(limit) {
     const rows = [];
@@ -631,9 +646,21 @@ body{display:flex;flex-direction:column;padding-bottom:0 !important}
         '<span class="fc-lb">' + (names[i] || (i + 1) + 'd') + '</span></div>';
     }).join('');
     const total = b.reduce((a, c) => a + c, 0);
+    const overdue = dueList().length;
+    const spread = overdue > 1
+      ? '<div class="spread"><span class="muted">积压太多？摊到后面几天：</span>' +
+      '<div class="row" style="margin-top:8px">' +
+      '<button class="btn tiny" data-spread="3" type="button">分 3 天</button>' +
+      '<button class="btn tiny" data-spread="5" type="button">分 5 天</button>' +
+      '<button class="btn tiny" data-spread="7" type="button">分 7 天</button>' +
+      (Object.keys(loadShift()).length ? '<button class="btn tiny" id="unshift" type="button">恢复原计划</button>' : '') +
+      '</div>' +
+      (spreadMsg ? '<p class="spread-msg">' + esc(spreadMsg) + '</p>' : '') +
+      '</div>'
+      : '';
     return '<div class="card"><div class="row" style="justify-content:space-between">' +
       '<strong>未来 7 天复习量</strong><span class="muted">共 ' + total + ' 题</span></div>' +
-      '<div class="fc">' + cols + '</div></div>';
+      '<div class="fc">' + cols + '</div>' + spread + '</div>';
   }
 
   function viewWeakCard() {
@@ -733,16 +760,18 @@ body{display:flex;flex-direction:column;padding-bottom:0 !important}
     return 'yellow';
   }
 
-  // 选中集合：存小节（topic）。默认全选。
+  // 选中集合：存小节（topic）。**默认一个都不选 = 全部**
   const sel = new Set();
-  let selInited = false;
+  const openMod = new Set();          // 折叠状态：默认全部收起
 
   function allTopics() { return [...new Set(BANK.map(q => q.topic))]; }
   function topicsWhere(fn) { return [...new Set(BANK.filter(fn).map(q => q.topic))]; }
-  function ensureSel() {
-    if (!selInited) { allTopics().forEach(t => sel.add(t)); selInited = true; }
+  function selCount() {
+    return sel.size ? BANK.filter(q => sel.has(q.topic)).length : BANK.length;
   }
-  function selCount() { return BANK.filter(q => sel.has(q.topic)).length; }
+  function selText() {
+    return sel.size ? '已选 ' + selCount() + ' 题' : '未选 = 全部 ' + BANK.length + ' 题';
+  }
 
   function checkState(scope, keys) {
     const all = keys.length > 0 && keys.every(k => sel.has(k));
@@ -751,7 +780,6 @@ body{display:flex;flex-direction:column;padding-bottom:0 !important}
   }
 
   function viewPick() {
-    ensureSel();
     const byCh = {};
     const modOf = {};
     BANK.forEach(q => {
@@ -782,11 +810,14 @@ body{display:flex;flex-direction:column;padding-bottom:0 !important}
       const modTopics = topicsWhere(q => (q.module || '') === mod);
       const modQs = BANK.filter(q => (q.module || '') === mod).length;
       const mst = checkState('m', modTopics);
-      accs += '<div class="mod-row">' +
+      const modOpen = openMod.has(mod);
+      accs += '<div class="mod-row" data-mod="' + esc(mod) + '">' +
         '<input type="checkbox" class="cbt" data-scope="m|' + esc(mod) + '"' +
-        (mst.checked ? ' checked' : '') + (mst.indet ? ' data-indet="1"' : '') + '>' +
+        (mst.checked ? ' checked' : '') + '>' +
+        '<span class="mod-chev' + (modOpen ? ' open' : '') + '">▶</span>' +
         '<span class="mod">' + esc(mod) + '</span>' +
         '<span class="num">' + modQs + '</span></div>';
+      if (!modOpen) return;
 
       byMod[mod].forEach(k => {
         const ch = byCh[k];
@@ -826,13 +857,13 @@ body{display:flex;flex-direction:column;padding-bottom:0 !important}
       '<label class="f">题型（不选=全部）</label><div class="row">' +
       types.map(t => '<label class="btn ghost" style="flex:1"><input type="checkbox" name="type" value="' + t + '"> ' +
         QT[t] + ' <span class="muted" style="margin-left:auto">' + tcount[t] + '</span></label>').join('') + '</div>' +
-      '<label class="f">范围（模块 / 章 / 小节都能整选）</label>' +
+      '<label class="f">范围（默认不选 = 全部；点模块名可收起）</label>' +
       '<label class="leaf all"><input type="checkbox" class="cbt" data-scope="all"' +
       (allSt.checked ? ' checked' : '') + '><span class="leaf-t"><b>全部 · C 语言</b></span>' +
       '<span class="num">' + BANK.length + '</span></label>' +
       accs +
       '<label class="f">题数</label><input type="number" id="count" value="10" min="1" max="200">' +
-      '<p class="muted" id="selinfo" style="margin:8px 0 0">已选 ' + selCount() + ' 题</p>' +
+      '<p class="muted" id="selinfo" style="margin:8px 0 0">' + selText() + '</p>' +
       '<div style="margin-top:12px"><button class="btn primary block" id="go">开始</button></div></div>';
   }
 
@@ -851,7 +882,7 @@ body{display:flex;flex-direction:column;padding-bottom:0 !important}
       cb.indeterminate = st.indet;
     });
     const info = document.getElementById('selinfo');
-    if (info) info.textContent = '已选 ' + selCount() + ' 题';
+    if (info) info.textContent = selText();
   }
 
   // 点击复选框：模块/章/全部 → 整组加或减；小节 → 单个
@@ -1117,7 +1148,7 @@ body{display:flex;flex-direction:column;padding-bottom:0 !important}
     const types = [...document.querySelectorAll('input[name=type]:checked')].map(e => e.value);
     let count = parseInt($('#count').value, 10) || 10;
 
-    let list = BANK.filter(q => sel.has(q.topic));
+    let list = sel.size ? BANK.filter(q => sel.has(q.topic)) : BANK.slice();
     if (types.length) list = list.filter(q => types.includes(q.qtype));
     // 已经答对的（蓝点）暂时不再出，避免重复消耗时间；错题池除外
     if (mode !== 'wrong') list = list.filter(q => qLevel(q.id) !== 'blue');
@@ -1170,11 +1201,15 @@ body{display:flex;flex-direction:column;padding-bottom:0 !important}
       (notesOf(cur.id).length ? '<span class="chip">疑问 ' + notesOf(cur.id).length + '</span>' : '') +
       '</div>' +
       '<div class="stem">' + cur.stem_html + '</div>' +
-      '<div class="mode-tabs" id="modeTabs">' +
-      '<button type="button" data-tab="write" class="on">写</button>' +
-      '<button type="button" data-tab="mark">标注</button></div>' +
-      '<div id="ta" class="ans-edit" contenteditable="true" data-ph="写下你的答案（写完后点「标注」按句上色）"></div>' +
-      '<div id="sentbox" class="sentbox hidden"></div>' +
+      '<div id="ta" class="ans-edit" contenteditable="true" data-ph="先点颜色再写字，写出来就是那个颜色；也可以选中已有的字再点颜色"></div>' +
+      '<div class="penbar" id="penbar">' +
+      '<span class="pen-lab">颜色</span>' +
+      '<button type="button" class="pk" data-pen="hl" title="黄底"><i class="c hl"></i></button>' +
+      '<button type="button" class="pk" data-pen="r" title="红字"><i class="c r"></i></button>' +
+      '<button type="button" class="pk" data-pen="g" title="绿字"><i class="c g"></i></button>' +
+      '<button type="button" class="pk" data-pen="b" title="蓝字"><i class="c b"></i></button>' +
+      '<button type="button" class="pk clr" data-pen="none">清除</button>' +
+      '</div>' +
       '<div class="grade" style="margin-top:10px"><button class="btn primary block" id="reveal">看参考答案</button></div>' +
       '<div id="ref" class="ref hidden"></div>' +
       '<div id="gbox" class="grade hidden"><div class="muted" style="margin-bottom:8px">对照答案，给自己判一下：</div>' +
@@ -1186,60 +1221,13 @@ body{display:flex;flex-direction:column;padding-bottom:0 !important}
   const ANS_COLOR = { r: '#dc2626', g: '#16a34a', b: '#2563eb' };
   const ANS_HL = '#fff3a3';
 
-  /* ---------- 按句上色：手机不用选中文字 ---------- */
-  // HTML → 句子数组（每句带上它继承的颜色/底纹）
-  function htmlToSentences(html) {
-    const box = document.createElement('div');
-    box.innerHTML = html;
-    const out = [];
-    const DELIM = /([。！？；!?;\n])/;
+  /* ---------- 颜色笔：点颜色 → 之后写的字就是这个颜色 ---------- */
+  let pen = '';                 // '' | 'hl' | 'r' | 'g' | 'b'
 
-    function pushText(txt, st) {
-      const pieces = txt.split(DELIM);
-      let buf = '';
-      for (let i = 0; i < pieces.length; i++) {
-        const p = pieces[i];
-        if (p.length === 1 && DELIM.test(p)) {
-          buf += p;
-          if (buf.trim()) out.push({ text: buf, color: st.color || '', hl: st.hl || '' });
-          buf = '';
-        } else {
-          buf += p;
-        }
-      }
-      if (buf.trim()) out.push({ text: buf, color: st.color || '', hl: st.hl || '' });
-    }
-
-    function walk(node, st) {
-      Array.prototype.slice.call(node.childNodes).forEach(function (n) {
-        if (n.nodeType === 3) {
-          pushText(n.nodeValue, st);
-        } else if (n.nodeType === 1) {
-          if (n.tagName === 'BR') {
-            if (out.length) out[out.length - 1].text += '\n';
-            else out.push({ text: '\n', color: '', hl: '' });
-            return;
-          }
-          walk(n, {
-            color: (n.style && n.style.color) ? n.style.color : st.color,
-            hl: (n.style && n.style.backgroundColor) ? n.style.backgroundColor : st.hl
-          });
-        }
-      });
-    }
-    walk(box, { color: '', hl: '' });
-    return out;
-  }
-
-  function sentencesToHtml(list) {
-    return list.map(function (s) {
-      if (!s.text) return '';
-      const st = [];
-      if (s.color) st.push('color:' + s.color);
-      if (s.hl) st.push('background-color:' + s.hl);
-      const t = (s.text === '\n') ? '<br>' : esc(s.text).replace(/\n/g, '<br>');
-      return st.length ? '<span style="' + st.join(';') + '">' + t + '</span>' : t;
-    }).join('');
+  function penStyle(kind) {
+    if (kind === 'hl') return { bg: ANS_HL };
+    if (kind === 'r' || kind === 'g' || kind === 'b') return { color: ANS_COLOR[kind] };
+    return null;
   }
 
   // 把某段文字外层带颜色的 span 拆掉（清除格式的关键）
@@ -1255,98 +1243,111 @@ body{display:flex;flex-direction:column;padding-bottom:0 !important}
     }
   }
 
-  /* ---------- 选中文字后的浮动工具条（桌面/手机同一套） ---------- */
-  function ensureSelBar() {
-    let bar = document.getElementById('selbar');
-    if (bar) return bar;
-    bar = document.createElement('div');
-    bar.id = 'selbar';
-    bar.innerHTML =
-      '<button type="button" data-mk="hl" title="黄底"><i class="c hl"></i></button>' +
-      '<button type="button" data-mk="r" title="红字"><i class="c r"></i></button>' +
-      '<button type="button" data-mk="g" title="绿字"><i class="c g"></i></button>' +
-      '<button type="button" data-mk="b" title="蓝字"><i class="c b"></i></button>' +
-      '<button type="button" data-mk="none" class="clr">清除</button>';
-    document.body.appendChild(bar);
-    // 关键：pointerdown / touchstart 阻止默认，点按钮时选区不会被收掉
-    bar.querySelectorAll('[data-mk]').forEach(btn => {
-      const keep = e => { e.preventDefault(); e.stopPropagation(); };
-      btn.addEventListener('pointerdown', keep);
-      btn.addEventListener('touchstart', keep, { passive: false });
-      btn.addEventListener('mousedown', keep);
-      btn.addEventListener('click', e => {
-        e.preventDefault();
-        applyAnsMark(btn.dataset.mk);
-      });
-    });
-    return bar;
-  }
-
-  function hideSelBar() {
-    const bar = document.getElementById('selbar');
-    if (bar) bar.classList.remove('on');
-  }
-
-  function updateSelBar() {
-    const bar = ensureSelBar();
+  function currentRangeInEditor() {
     const ta = document.getElementById('ta');
     const sel = window.getSelection();
-    if (!ta || !sel || !sel.rangeCount || sel.isCollapsed) { hideSelBar(); return; }
+    if (!ta || !sel || !sel.rangeCount) return null;
     const range = sel.getRangeAt(0);
-    if (!ta.contains(range.commonAncestorContainer)) { hideSelBar(); return; }
-    const txt = range.toString().trim();
-    if (!txt) { hideSelBar(); return; }
-
-    const r = range.getBoundingClientRect();
-    if (!r || (!r.width && !r.height)) { hideSelBar(); return; }
-
-    bar.classList.add('on');
-    const bw = bar.offsetWidth || 190, bh = bar.offsetHeight || 38;
-    let left = r.left + r.width / 2;
-    left = Math.max(bw / 2 + 8, Math.min(left, window.innerWidth - bw / 2 - 8));
-    let top = r.top - bh - 10;
-    if (top < 8) top = r.bottom + 10;                 // 上面放不下就放下面
-    if (top + bh > window.innerHeight - 8) top = window.innerHeight - bh - 8;
-    bar.style.left = left + 'px';
-    bar.style.top = top + 'px';
+    if (!ta.contains(range.commonAncestorContainer)) return null;
+    return range;
   }
 
-  // 富文本：直接给选中的文字加颜色/底色，输入框里看到的就是最终效果
-  function applyAnsMark(kind) {
+  // 有选区 → 直接给这段上色
+  function paintSelection(range, kind) {
     const ta = document.getElementById('ta');
-    if (!ta) return;
-    const sel = window.getSelection();
-    if (!sel || !sel.rangeCount) return;
-    const range = sel.getRangeAt(0);
-    if (!ta.contains(range.commonAncestorContainer)) return;
-    if (range.collapsed) return;              // 没选中就不动
-
-    const text = range.toString();
-    if (kind === 'none') {                    // 清除：整段还原成纯文本，并拆掉外层颜色
+    if (kind === 'none') {
+      const text = range.toString();
       range.deleteContents();
       const tn = document.createTextNode(text);
       range.insertNode(tn);
       unwrapColorAround(tn, ta);
       ta.dispatchEvent(new Event('input', { bubbles: true }));
-      hideSelBar();
       return;
     }
-
+    const st = penStyle(kind);
+    if (!st) return;
     const span = document.createElement('span');
-    if (kind === 'hl') span.style.backgroundColor = '#fff3a3';
-    else span.style.color = ANS_COLOR[kind] || '#111';
-
+    if (st.color) span.style.color = st.color;
+    if (st.bg) span.style.backgroundColor = st.bg;
     try {
       span.appendChild(range.extractContents());
       range.insertNode(span);
     } catch (e) { return; }
-
+    const sel = window.getSelection();
     sel.removeAllRanges();
     const r2 = document.createRange();
     r2.selectNodeContents(span);
     sel.addRange(r2);
     ta.dispatchEvent(new Event('input', { bubbles: true }));
-    updateSelBar();
+  }
+
+  // 光标所在位置当前生效的颜色
+  function colorAt(node) {
+    const ta = document.getElementById('ta');
+    let el = node && (node.nodeType === 1 ? node : node.parentNode);
+    const res = { color: '', bg: '' };
+    while (el && el !== ta) {
+      if (el.style) {
+        if (!res.color && el.style.color) res.color = el.style.color;
+        if (!res.bg && el.style.backgroundColor) res.bg = el.style.backgroundColor;
+      }
+      el = el.parentNode;
+    }
+    return res;
+  }
+
+  function cssColor(v, prop) {
+    const d = document.createElement('span');
+    d.style[prop || 'color'] = v;
+    return d.style[prop || 'color'];
+  }
+
+  // 当前笔色对应的目标样式
+  function wantStyle() {
+    if (pen === 'hl') return { color: '', bg: ANS_HL };
+    if (pen === 'r' || pen === 'g' || pen === 'b') return { color: ANS_COLOR[pen], bg: '' };
+    return { color: '#111111', bg: '' };
+  }
+
+  // 把刚打出来的 range 包成当前笔色的 span
+  function wrapRangeWithPen(range) {
+    if (!range || range.collapsed) return;
+    const w = wantStyle();
+    const cur = colorAt(range.startContainer);
+
+    if (pen === 'none') {
+      if (!cur.color && !cur.bg) return;                 // 本来就是黑的
+    } else if (pen === 'hl') {
+      if (cur.bg === cssColor(w.bg, 'backgroundColor')) return;
+    } else {
+      if (cur.color === cssColor(w.color)) return;       // 已经是这支笔的颜色
+    }
+
+    const span = document.createElement('span');
+    if (w.color) span.style.color = w.color;
+    if (w.bg) span.style.backgroundColor = w.bg;
+    try {
+      span.appendChild(range.extractContents());
+      range.insertNode(span);
+    } catch (e) { return; }
+    const sel = window.getSelection();
+    if (sel && span.firstChild) {
+      const r2 = document.createRange();
+      r2.setStart(span.firstChild, span.firstChild.length);
+      r2.collapse(true);
+      sel.removeAllRanges();
+      sel.addRange(r2);
+    }
+  }
+
+  // 点色点：有选区就给这段上色；没选区就只换笔色（之后的字跟着变）
+  function setPen(kind) {
+    pen = kind;
+    document.querySelectorAll('#penbar .pk').forEach(b =>
+      b.classList.toggle('on', b.dataset.pen === kind));
+    const range = currentRangeInEditor();
+    // 必须有真实选中的文字才改它；否则只是换笔色
+    if (range && !range.isCollapsed && range.toString().trim()) paintSelection(range, kind);
   }
 
   function mountQuiz() {
@@ -1361,74 +1362,58 @@ body{display:flex;flex-direction:column;padding-bottom:0 !important}
       else ta.textContent = draft;
     }
 
-    const saveDraft = () => localStorage.setItem(key, ta.innerHTML);
-    ta.addEventListener('input', saveDraft);
-    ta.addEventListener('blur', () => setTimeout(hideSelBar, 120));
+    // 存草稿：去掉零宽字符和空 span
+    const cleanHtml = h => h.replace(/\u200B/g, '').replace(/<span[^>]*><\/span>/g, '');
+    const saveDraft = () => localStorage.setItem(key, cleanHtml(ta.innerHTML));
 
-    /* ---- 写 / 标注 两种模式 ---- */
-    const sentbox = $('#sentbox');
-    let sentences = [];
-
-    function renderSentences() {
-      if (!sentences.length) {
-        sentbox.innerHTML = '<p class="muted" style="margin:6px 2px">还没有内容。先点「写」写几句，再回来标注。</p>';
-        return;
-      }
-      sentbox.innerHTML = sentences.map(function (s, i) {
-        if (!s.text.trim() && s.text !== '\n') return '';
-        const label = (s.text === '\n') ? '⏎' : s.text;
-        const st = (s.color ? 'color:' + s.color + ';' : '') +
-          (s.hl ? 'background-color:' + s.hl + ';' : '');
-        return '<div class="sent" data-i="' + i + '">' +
-          '<span class="sent-t" style="' + st + '">' + esc(label) + '</span>' +
-          '<span class="sent-dots">' +
-          '<button class="d hl" data-i="' + i + '" data-k="hl" title="黄底"></button>' +
-          '<button class="d r" data-i="' + i + '" data-k="r" title="红字"></button>' +
-          '<button class="d g" data-i="' + i + '" data-k="g" title="绿字"></button>' +
-          '<button class="d b" data-i="' + i + '" data-k="b" title="蓝字"></button>' +
-          '<button class="d none" data-i="' + i + '" data-k="none" title="清除"></button>' +
-          '</span></div>';
-      }).join('');
-    }
-
-    sentbox.addEventListener('click', function (e) {
-      const btn = e.target.closest('[data-k]');
-      if (!btn) return;
-      e.preventDefault();
-      const i = parseInt(btn.dataset.i, 10);
-      const k = btn.dataset.k;
-      const s = sentences[i];
-      if (!s) return;
-      if (k === 'none') { s.color = ''; s.hl = ''; }
-      else if (k === 'hl') { s.hl = ANS_HL; s.color = ''; }
-      else { s.color = ANS_COLOR[k] || ''; s.hl = ''; }
-      ta.innerHTML = sentencesToHtml(sentences);
-      saveDraft();
-      renderSentences();
+    // 打了字就立刻按当前笔色包起来（不依赖光标是否在某个 span 里）
+    let compRange = null;
+    ta.addEventListener('compositionstart', () => {
+      const sel = window.getSelection();
+      if (sel && sel.rangeCount) compRange = sel.getRangeAt(0).cloneRange();
     });
-
-    let mode = 'write';
-    function setTab(tab) {
-      if (tab === mode) return;
-      document.querySelectorAll('#modeTabs [data-tab]').forEach(b =>
-        b.classList.toggle('on', b.dataset.tab === tab));
-      if (tab === 'mark') {
-        sentences = htmlToSentences(ta.innerHTML);
-        hideSelBar();
-        ta.classList.add('hidden');
-        sentbox.classList.remove('hidden');
-        renderSentences();
-      } else {
-        ta.innerHTML = sentencesToHtml(sentences);
-        saveDraft();
-        sentbox.classList.add('hidden');
-        ta.classList.remove('hidden');
+    ta.addEventListener('compositionend', () => {
+      if (!pen || !compRange) { compRange = null; saveDraft(); return; }
+      const sel = window.getSelection();
+      if (sel && sel.rangeCount) {
+        const r = document.createRange();
+        try {
+          r.setStart(compRange.startContainer, compRange.startOffset);
+          r.setEnd(sel.focusNode, sel.focusOffset);
+          wrapRangeWithPen(r);
+        } catch (e) { }
       }
-      mode = tab;
-    }
+      compRange = null;
+      saveDraft();
+    });
+    ta.addEventListener('input', e => {
+      saveDraft();
+      if (!pen || e.isComposing) return;
+      if (e.inputType !== 'insertText' || !e.data) return;
+      const sel = window.getSelection();
+      if (!sel || !sel.rangeCount || !sel.isCollapsed) return;
+      const node = sel.focusNode, off = sel.focusOffset;
+      if (!node || node.nodeType !== 3) return;
+      const start = off - e.data.length;
+      if (start < 0) return;
+      const r = document.createRange();
+      r.setStart(node, start);
+      r.setEnd(node, off);
+      wrapRangeWithPen(r);
+    });
+    ta.addEventListener('input', saveDraft);
 
-    document.querySelectorAll('#modeTabs [data-tab]').forEach(b => {
-      b.addEventListener('click', () => setTab(b.dataset.tab));
+    // 颜色笔：点一下等于换一支笔，接下来打的字就是这个颜色
+    document.querySelectorAll('#penbar .pk').forEach(btn => {
+      // 阻止默认，避免点按钮时把输入框的选区弄丢
+      const keep = e => e.preventDefault();
+      btn.addEventListener('pointerdown', keep);
+      btn.addEventListener('touchstart', keep, { passive: false });
+      btn.addEventListener('mousedown', keep);
+      btn.addEventListener('click', e => {
+        e.preventDefault();
+        setPen(btn.dataset.pen);
+      });
     });
 
     const pauseBtn = $('#pauseBtn');
@@ -1463,10 +1448,13 @@ body{display:flex;flex-direction:column;padding-bottom:0 !important}
     document.querySelectorAll('#gbox [data-g]').forEach(b => {
       b.addEventListener('click', () => {
         const grade = parseInt(b.dataset.g, 10);
-        const html = ta.innerHTML;
+        const html = ta.innerHTML.replace(/\u200B/g, '');
         const rec = { id: uid(), qid: cur.id, answer: (ta.textContent.trim() ? html : ''), grade: grade, ts: Date.now() };
         S.attempts.push(rec);
         save();
+        // 这题重新做过，取消它之前的手动推迟
+        const sh = loadShift();
+        if (sh[cur.id]) { delete sh[cur.id]; saveShift(sh); }
         if (cloudReady()) cloudPush([rec]).catch(() => { });   // 后台补传，失败不影响本机
         localStorage.removeItem(key);
         session.pos++;
@@ -1672,7 +1660,6 @@ body{display:flex;flex-direction:column;padding-bottom:0 !important}
                   notes: viewNotes, more: viewMore, quiz: viewQuiz };
 
   function route() {
-    hideSelBar();
     // hash 里可能带查询串（#pick?mode=wrong），页面名要先把 ? 之后切掉
     const raw = (location.hash || '#home').slice(1);
     const name = raw.split('?')[0];
@@ -1729,11 +1716,36 @@ body{display:flex;flex-direction:column;padding-bottom:0 !important}
         session = null;
         route();
       });
+      // 复习题重新分配
+      document.querySelectorAll('[data-spread]').forEach(b => {
+        b.addEventListener('click', () => {
+          const days = parseInt(b.dataset.spread, 10);
+          const n = applySpread(days);
+          spreadMsg = n
+            ? '已把 ' + n + ' 道到期的题摊到未来 ' + days + ' 天，约每天 ' + Math.ceil(n / days) + ' 题。做过一次就自动回原节奏。'
+            : '现在没有积压的题。';
+          route();
+        });
+      });
+      const unshift = $('#unshift');
+      if (unshift) unshift.addEventListener('click', () => {
+        localStorage.removeItem(SHIFT_KEY);
+        spreadMsg = '已恢复原来的复习计划。';
+        route();
+      });
     }
     if (name === 'pick') {
-      $('#go').addEventListener('click', () => {
-        if (!selCount()) { alert('先勾选要练的范围（模块、章、小节都可以）'); return; }
-        startSession(pickQuestions());
+      $('#go').addEventListener('click', () => startSession(pickQuestions()));
+      // 点模块名收起/展开（点复选框不触发）
+      document.querySelectorAll('.mod-row').forEach(row => {
+        row.addEventListener('click', e => {
+          if (e.target.classList.contains('cbt')) return;
+          const mod = row.dataset.mod;
+          if (openMod.has(mod)) openMod.delete(mod); else openMod.add(mod);
+          const keep = document.getElementById('root').scrollTop;
+          route();
+          document.getElementById('root').scrollTop = keep;
+        });
       });
       // 复选框：整组 / 单个 选中
       document.querySelectorAll('.cbt[data-scope]').forEach(cb => {
@@ -1808,14 +1820,6 @@ body{display:flex;flex-direction:column;padding-bottom:0 !important}
       if (saved) session = saved;
     }
     route();
-    // 选区变化 → 决定浮动工具条显不显示（防抖，别每次移动都重排）
-    let selTimer = null;
-    document.addEventListener('selectionchange', () => {
-      if (selTimer) return;
-      selTimer = setTimeout(() => { selTimer = null; updateSelBar(); }, 80);
-    });
-    document.addEventListener('scroll', hideSelBar, true);
-    window.addEventListener('resize', hideSelBar);
     if ('serviceWorker' in navigator && location.protocol !== 'file:') {
       navigator.serviceWorker.register('./sw.js').catch(() => { });
     }
